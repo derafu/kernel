@@ -42,10 +42,6 @@ class MicroKernelTest extends TestCase
 
         $this->assertInstanceOf(ContainerInterface::class, $container);
         $this->assertTrue($this->kernel->isBooted());
-
-        // Test container has kernel service.
-        $this->assertTrue($container->has(TestKernel::class));
-        $this->assertSame($this->kernel, $container->get(TestKernel::class));
     }
 
     public function testDirectoryStructure(): void
@@ -78,7 +74,7 @@ class MicroKernelTest extends TestCase
 
     public function testConfigureHook(): void
     {
-        $kernel = new Test2Kernel('test');
+        $kernel = new Test2Kernel('test', true);
 
         $container = $kernel->getContainer();
 

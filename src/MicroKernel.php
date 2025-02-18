@@ -14,12 +14,15 @@ namespace Derafu\Kernel;
 
 use Composer\InstalledVersions;
 use Derafu\Kernel\Contract\KernelInterface;
+use Derafu\Support\File;
 use ReflectionObject;
+use RuntimeException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Config\Loader\DelegatingLoader;
 use Symfony\Component\Config\Loader\LoaderResolver;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
@@ -224,9 +227,66 @@ class MicroKernel implements KernelInterface
             return;
         }
 
-        $this->container = $this->buildContainer();
+        $containerDumpFile = $this->getCacheDir() . '/container.php';
+        if ($this->debug || !file_exists($containerDumpFile)) {
+            $container = $this->buildContainer();
+            $this->cacheContainer($containerDumpFile, $container);
+        }
+
+        require_once $containerDumpFile;
+        // @phpstan-ignore-next-line
+        $this->container = new \CachedContainer();
 
         $this->booted = true;
+    }
+
+    /**
+     * Caches the container by dumping its configuration to a PHP file.
+     *
+     * This method dumps the container configuration to a PHP file that can be
+     * loaded directly in subsequent requests, improving performance by avoiding
+     * container rebuilding. The dumped container extends from
+     * AbstractCachedContainer and contains all compiled service definitions.
+     *
+     * The method performs two main tasks:
+     *
+     *   1. Dumps the container configuration using PhpDumper.
+     *   2. Writes the dumped configuration to a file, either using the File
+     *      utility if available, or falling back to native PHP file operations.
+     *
+     * @param string $file The path where the cached container should be written.
+     * @param ContainerInterface $container The container instance to be cached.
+     *
+     * @throws RuntimeException If the cache directory cannot be created.
+     * @throws RuntimeException If the container cannot be written to the cache file.
+     */
+    protected function cacheContainer(
+        string $file,
+        ContainerInterface $container
+    ): void {
+        assert($container instanceof ContainerBuilder);
+
+        $dumper = new PhpDumper($container);
+
+        $content = $dumper->dump([
+            'class' => 'CachedContainer',
+        ]);
+
+        if (class_exists(File::class)) {
+            File::write($file, $content);
+        } else {
+            $directory = dirname($file);
+            if (!is_dir($directory)) {
+                if (false === @mkdir($directory, 0777, true) && !is_dir($directory)) {
+                    throw new RuntimeException(sprintf(
+                        'Unable to create directory (%s).',
+                        $directory
+                    ));
+                }
+            }
+
+            file_put_contents($file, $content);
+        }
     }
 
     /**
@@ -287,9 +347,6 @@ class MicroKernel implements KernelInterface
 
         // Compile the container for performance.
         $container->compile();
-
-        // Set the kernel as a synthetic service after compilation.
-        $container->set(static::class, $this);
 
         return $container;
     }
@@ -371,13 +428,7 @@ class MicroKernel implements KernelInterface
             ->defaults()
             ->autowire()
             ->autoconfigure()
-        ;
-
-        // Register the kernel as a synthetic service.
-        $services
-            ->set(static::class)
-            ->synthetic()
-            ->public()
+            ->private()
         ;
 
         // Allow additional configuration through the configure method.
@@ -388,7 +439,7 @@ class MicroKernel implements KernelInterface
      * Hook method for additional container configuration.
      *
      * Override this method in child classes to add custom service
-     * configuration.
+     * configuration previous compilation.
      *
      * @param ContainerConfigurator $configurator The container configurator.
      */
