@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\Kernel;
 
-use Composer\InstalledVersions;
+use Derafu\Kernel\Contract\EnvironmentInterface;
 use Derafu\Kernel\Contract\KernelInterface;
 use Derafu\Support\File;
 use ReflectionObject;
@@ -34,25 +34,15 @@ use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
  * This kernel serves as the core of the application, managing:
  *
  *   - Dependency injection container initialization and configuration.
- *   - Environment and debug settings.
- *   - Project directory structure.
- *   - Configuration loading from PHP and YAML files.
  */
 class MicroKernel implements KernelInterface
 {
     /**
-     * The current environment (e.g., 'dev', 'prod').
+     * The current environment.
      *
-     * @var string
+     * @var EnvironmentInterface
      */
-    protected string $environment;
-
-    /**
-     * Whether debug mode is enabled.
-     *
-     * @var bool
-     */
-    protected bool $debug;
+    protected EnvironmentInterface $environment;
 
     /**
      * Whether the kernel has been booted.
@@ -62,49 +52,49 @@ class MicroKernel implements KernelInterface
     protected bool $booted = false;
 
     /**
-     * The project's root directory path.
-     *
-     * @var string
-     */
-    protected string $projectDir;
-
-    /**
      * The dependency injection container instance.
      *
      * @var ContainerInterface
      */
-    protected ContainerInterface $container;
+    private ContainerInterface $container;
 
     /**
      * Creates a new Kernel instance.
      *
-     * @param string $environment The environment name (e.g., 'dev', 'prod').
-     * @param bool $debug Whether to enable debug mode.
+     * @param string|EnvironmentInterface $environment The environment. Can be
+     * an instance of EnvironmentInterface or just the name (e.g., 'dev', 'prod').
+     * @param bool $debug Whether to enable debug mode. Used when $environment
+     * is a string.
      */
-    public function __construct(string $environment, bool $debug = false)
+    public function __construct(string|EnvironmentInterface $environment, bool $debug = false)
     {
-        $this->environment = $environment;
-        $this->debug = $debug;
+        $this->environment = $environment instanceof EnvironmentInterface
+            ? $environment
+            : new Environment($environment, $debug)
+        ;
     }
 
     /**
-     * Gets the current environment.
-     *
-     * @return string The environment name.
+     * {@inheritDoc}
      */
-    public function getEnvironment(): string
+    public function boot(): void
     {
-        return $this->environment;
-    }
+        if ($this->booted) {
+            return;
+        }
 
-    /**
-     * Checks if debug mode is enabled.
-     *
-     * @return bool True if debug mode is enabled, false otherwise.
-     */
-    public function isDebug(): bool
-    {
-        return $this->debug;
+        $containerDumpFile = $this->environment->getCacheDir() . '/container.php';
+        if ($this->environment->isDebug() || !file_exists($containerDumpFile)) {
+            $container = $this->buildContainer();
+            $this->cacheContainer($containerDumpFile, $container);
+        }
+
+        require_once $containerDumpFile;
+
+        // @phpstan-ignore-next-line
+        $this->container = new \CachedContainer();
+
+        $this->booted = true;
     }
 
     /**
@@ -114,7 +104,7 @@ class MicroKernel implements KernelInterface
      *
      * @return ContainerInterface The service container.
      */
-    public function getContainer(): ContainerInterface
+    protected function getContainer(): ContainerInterface
     {
         if (!$this->booted) {
             $this->boot();
@@ -124,129 +114,11 @@ class MicroKernel implements KernelInterface
     }
 
     /**
-     * Gets the project root directory.
-     *
-     * Determines the project directory based on the location of the symfony
-     * dependency-injection package.
-     *
-     * This assumes the project follows a standard Composer directory structure.
-     *
-     * @return string The project root directory path.
-     */
-    public function getProjectDir(): string
-    {
-        if (!isset($this->projectDir)) {
-            $routingPackagePath = realpath(
-                InstalledVersions::getInstallPath('symfony/dependency-injection')
-            );
-            $this->projectDir = dirname($routingPackagePath, 3);
-        }
-
-        return $this->projectDir;
-    }
-
-    /**
-     * Gets the build directory for compiled assets and other build artifacts.
-     *
-     * @return string The build directory path.
-     */
-    public function getBuildDir(): string
-    {
-        return $this->getProjectDir() . '/build';
-    }
-
-    /**
-     * Gets the cache directory for the current environment.
-     *
-     * @return string The cache directory path
-     */
-    public function getCacheDir(): string
-    {
-        return $this->getProjectDir() . '/var/cache/' . $this->environment;
-    }
-
-    /**
-     * Gets the configuration directory.
-     *
-     * @return string The config directory path.
-     */
-    public function getConfigDir(): string
-    {
-        return $this->getProjectDir() . '/config';
-    }
-
-    /**
-     * Gets the log directory.
-     *
-     * @return string The log directory path.
-     */
-    public function getLogDir(): string
-    {
-        return $this->getProjectDir() . '/var/log';
-    }
-
-    /**
-     * Gets the resources directory.
-     *
-     * @return string The resources directory path.
-     */
-    public function getResourcesDir(): string
-    {
-        return $this->getProjectDir() . '/resources';
-    }
-
-    /**
-     * Gets the translations directory.
-     *
-     * @return string The translations directory path.
-     */
-    public function getTranslationsDir(): string
-    {
-        return $this->getProjectDir() . '/translations';
-    }
-
-    /**
-     * Gets the templates directory.
-     *
-     * @return string The templates directory path.
-     */
-    public function getTemplatesDir(): string
-    {
-        return $this->getProjectDir() . '/templates';
-    }
-
-    /**
-     * Boots the kernel.
-     *
-     * This method initializes the container and marks the kernel as booted.
-     * It ensures this only happens once, even if called multiple times.
-     */
-    public function boot(): void
-    {
-        if ($this->booted) {
-            return;
-        }
-
-        $containerDumpFile = $this->getCacheDir() . '/container.php';
-        if ($this->debug || !file_exists($containerDumpFile)) {
-            $container = $this->buildContainer();
-            $this->cacheContainer($containerDumpFile, $container);
-        }
-
-        require_once $containerDumpFile;
-        // @phpstan-ignore-next-line
-        $this->container = new \CachedContainer();
-
-        $this->booted = true;
-    }
-
-    /**
      * Caches the container by dumping its configuration to a PHP file.
      *
      * This method dumps the container configuration to a PHP file that can be
      * loaded directly in subsequent requests, improving performance by avoiding
-     * container rebuilding. The dumped container extends from
-     * AbstractCachedContainer and contains all compiled service definitions.
+     * container rebuilding.
      *
      * The method performs two main tasks:
      *
@@ -306,16 +178,9 @@ class MicroKernel implements KernelInterface
     {
         // Initialize container and set basic parameters.
         $container = new ContainerBuilder();
-        $container->setParameter('kernel.project_dir', $this->getProjectDir());
-        $container->setParameter('kernel.build_dir', $this->getBuildDir());
-        $container->setParameter('kernel.cache_dir', $this->getCacheDir());
-        $container->setParameter('kernel.config_dir', $this->getConfigDir());
-        $container->setParameter('kernel.log_dir', $this->getLogDir());
-        $container->setParameter('kernel.resources_dir', $this->getResourcesDir());
-        $container->setParameter('kernel.translations_dir', $this->getTranslationsDir());
-        $container->setParameter('kernel.templates_dir', $this->getTemplatesDir());
-        $container->setParameter('kernel.environment', $this->environment);
-        $container->setParameter('kernel.debug', $this->debug);
+        foreach ($this->environment->toArray() as $name => $value) {
+            $container->setParameter('kernel.' . $name, $value);
+        }
 
         // Create the delegating loader for configuration files.
         $delegatingLoader = $this->getDelegatingLoader($container);
@@ -334,13 +199,13 @@ class MicroKernel implements KernelInterface
             $container,
             $kernelLoader,
             $instanceof,
-            $this->getConfigDir(),
-            $this->getCacheDir(),
-            $this->environment
+            $this->environment->getConfigDir(),
+            $this->environment->getCacheDir(),
+            $this->environment->getName()
         );
 
         // Load all configuration files.
-        $this->loadConfigurations($delegatingLoader);
+        $this->loadConfiguration($delegatingLoader);
 
         // Configure the container with additional settings.
         $this->configureContainer($configurator);
@@ -363,7 +228,7 @@ class MicroKernel implements KernelInterface
     protected function getDelegatingLoader(
         ContainerBuilder $container
     ): DelegatingLoader {
-        $fileLocator = new FileLocator($this->getConfigDir());
+        $fileLocator = new FileLocator($this->environment->getConfigDir());
         $loaderResolver = new LoaderResolver([
             new PhpFileLoader($container, $fileLocator),
             new YamlFileLoader($container, $fileLocator),
@@ -373,23 +238,28 @@ class MicroKernel implements KernelInterface
     }
 
     /**
-     * Loads configuration files from the config directory.
+     * Loads configuration from supported sources.
      *
-     * Attempts to load 'parameters', 'routes', and 'services' configurations
-     * from both PHP and YAML files.
+     * This method should:
      *
-     * @param DelegatingLoader $loader The loader to use.
+     *   1. Look for configuration files in standard locations.
+     *   2. Load and merge configurations in correct order.
+     *   3. Process environment variables if needed.
+     *   4. Cache the final configuration if appropriate.
+     *
+     * @param DelegatingLoader $loader
+     * @return void
      */
-    protected function loadConfigurations(DelegatingLoader $loader): void
+    protected function loadConfiguration(DelegatingLoader $loader): void
     {
-        // Configuration files to look for
+        // Configuration files to look for.
         $configFiles = ['parameters', 'routes', 'services'];
         $extensions = $this->getConfigurationFileExtensions();
 
-        // Try loading each configuration file with each supported extension
+        // Try loading each configuration file with each supported extension.
         foreach ($configFiles as $file) {
             foreach ($extensions as $extension) {
-                $configFile = $this->getConfigDir() . '/' . $file . '.' . $extension;
+                $configFile = $this->environment->getConfigDir() . '/' . $file . '.' . $extension;
                 if (file_exists($configFile)) {
                     $loader->load($configFile);
                 }
@@ -400,7 +270,7 @@ class MicroKernel implements KernelInterface
     /**
      * Gets the list of supported configuration file extensions.
      *
-     * @return array<string> Array of supported file extensions
+     * @return array<string> Array of supported file extensions.
      */
     protected function getConfigurationFileExtensions(): array
     {

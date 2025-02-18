@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\TestsKernel;
 
+use Derafu\Kernel\Environment;
 use Derafu\Kernel\MicroKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -20,40 +21,35 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 #[CoversClass(MicroKernel::class)]
+#[CoversClass(Environment::class)]
 class MicroKernelTest extends TestCase
 {
+    private TestEnvironment $environment;
+
     private TestKernel $kernel;
 
     protected function setUp(): void
     {
-        $this->kernel = new TestKernel('test', true);
+        $this->environment = new TestEnvironment('test', true);
+        $this->kernel = new TestKernel($this->environment);
     }
 
     public function testKernelInitialization(): void
     {
-        $this->assertSame('test', $this->kernel->getEnvironment());
-        $this->assertTrue($this->kernel->isDebug());
+        $this->assertSame('test', $this->environment->getName());
+        $this->assertTrue($this->environment->isDebug());
         $this->assertFalse($this->kernel->isBooted());
-    }
-
-    public function testGetContainer(): void
-    {
-        $container = $this->kernel->getContainer();
-
-        $this->assertInstanceOf(ContainerInterface::class, $container);
-        $this->assertTrue($this->kernel->isBooted());
     }
 
     public function testDirectoryStructure(): void
     {
-        $projectDir = $this->kernel->getProjectDir();
+        $projectDir = $this->environment->getProjectDir();
 
         $this->assertDirectoryExists($projectDir);
-        $this->assertDirectoryExists($this->kernel->getConfigDir());
-        $this->assertSame($projectDir . '/tests/fixtures/config', $this->kernel->getConfigDir());
-        $this->assertSame($projectDir . '/build', $this->kernel->getBuildDir());
-        $this->assertSame($projectDir . '/var/cache/test', $this->kernel->getCacheDir());
-        $this->assertSame($projectDir . '/var/log', $this->kernel->getLogDir());
+        $this->assertDirectoryExists($this->environment->getConfigDir());
+        $this->assertSame($projectDir . '/tests/fixtures/config', $this->environment->getConfigDir());
+        $this->assertSame($projectDir . '/var/cache/test', $this->environment->getCacheDir());
+        $this->assertSame($projectDir . '/var/log', $this->environment->getLogDir());
     }
 
     public function testConfigurationLoading(): void
@@ -83,13 +79,8 @@ class MicroKernelTest extends TestCase
     }
 }
 
-class TestKernel extends MicroKernel
+class TestEnvironment extends Environment
 {
-    public function isBooted(): bool
-    {
-        return $this->booted;
-    }
-
     public function getConfigDir(): string
     {
         return dirname(__DIR__) . '/fixtures/config';
@@ -98,6 +89,19 @@ class TestKernel extends MicroKernel
     protected function getConfigurationFileExtensions(): array
     {
         return ['php']; // Solo PHP para simplificar los tests.
+    }
+}
+
+class TestKernel extends MicroKernel
+{
+    public function isBooted(): bool
+    {
+        return $this->booted;
+    }
+
+    public function getContainer(): ContainerInterface
+    {
+        return parent::getContainer();
     }
 }
 
@@ -115,5 +119,10 @@ class Test2Kernel extends MicroKernel
     public function wasConfigureCalled(): bool
     {
         return $this->configureWasCalled;
+    }
+
+    public function getContainer(): ContainerInterface
+    {
+        return parent::getContainer();
     }
 }
