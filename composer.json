@@ -34,7 +34,8 @@
         "friendsofphp/php-cs-fixer": "^3.63",
         "phpstan/phpstan": "^1.12",
         "phpunit/phpunit": "^11.4",
-        "derafu/support": "dev-main"
+        "derafu/support": "dev-main",
+        "symfony/yaml": "^7.2"
     },
     "scripts": {
         "docs": "php tools/phpdocumentor run --config=phpdoc.xml",

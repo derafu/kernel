@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\Kernel;
 
+use Derafu\Kernel\Config\Loader\PhpRoutesLoader;
 use Derafu\Kernel\Contract\EnvironmentInterface;
 use Derafu\Kernel\Contract\KernelInterface;
 use Derafu\Support\File;
@@ -25,7 +26,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 /**
  * A lightweight kernel implementation that provides basic container and
@@ -37,6 +37,38 @@ use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
  */
 class MicroKernel implements KernelInterface
 {
+    /**
+     * The mapping of configuration files to their loader types.
+     *
+     * Array where keys are filenames and values are loader types.
+     *
+     * This array defines which configuration files should be loaded and with
+     * which loader type. Override this constant to customize the configuration
+     * files for your application.
+     *
+     * Default supported types:
+     *
+     *   - 'php': PHP configuration files.
+     *   - 'yaml': YAML configuration files.
+     *   - 'routes': Route configuration files (both PHP and YAML).
+     *
+     * @var array<string,string>
+     */
+    protected const CONFIG_FILES = [
+        'services.php' => 'php',
+        'routes.php' => 'routes',
+    ];
+
+    /**
+     * Loaders for file configurations.
+     *
+     * @var class-string[]
+     */
+    protected const CONFIG_LOADERS = [
+        PhpFileLoader::class,
+        PhpRoutesLoader::class,
+    ];
+
     /**
      * The current environment.
      *
@@ -229,52 +261,29 @@ class MicroKernel implements KernelInterface
         ContainerBuilder $container
     ): DelegatingLoader {
         $fileLocator = new FileLocator($this->environment->getConfigDir());
-        $loaderResolver = new LoaderResolver([
-            new PhpFileLoader($container, $fileLocator),
-            new YamlFileLoader($container, $fileLocator),
-        ]);
+        $loaders = [];
+        foreach (static::CONFIG_LOADERS as $configLoader) {
+            $loaders[] = new $configLoader($container, $fileLocator);
+        }
+        $loaderResolver = new LoaderResolver($loaders);
 
         return new DelegatingLoader($loaderResolver);
     }
 
     /**
-     * Loads configuration from supported sources.
-     *
-     * This method should:
-     *
-     *   1. Look for configuration files in standard locations.
-     *   2. Load and merge configurations in correct order.
-     *   3. Process environment variables if needed.
-     *   4. Cache the final configuration if appropriate.
+     * Loads configuration from supported config files.
      *
      * @param DelegatingLoader $loader
      * @return void
      */
     protected function loadConfiguration(DelegatingLoader $loader): void
     {
-        // Configuration files to look for.
-        $configFiles = ['parameters', 'routes', 'services'];
-        $extensions = $this->getConfigurationFileExtensions();
-
-        // Try loading each configuration file with each supported extension.
-        foreach ($configFiles as $file) {
-            foreach ($extensions as $extension) {
-                $configFile = $this->environment->getConfigDir() . '/' . $file . '.' . $extension;
-                if (file_exists($configFile)) {
-                    $loader->load($configFile);
-                }
+        foreach (static::CONFIG_FILES as $file => $type) {
+            $configFile = $this->environment->getConfigDir() . '/' . $file;
+            if (file_exists($configFile)) {
+                $loader->load($configFile, $type);
             }
         }
-    }
-
-    /**
-     * Gets the list of supported configuration file extensions.
-     *
-     * @return array<string> Array of supported file extensions.
-     */
-    protected function getConfigurationFileExtensions(): array
-    {
-        return ['yaml', 'php'];
     }
 
     /**

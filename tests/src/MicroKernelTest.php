@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace Derafu\TestsKernel;
 
+use Derafu\Kernel\Config\Loader\PhpRoutesLoader;
+use Derafu\Kernel\Config\Loader\YamlRoutesLoader;
 use Derafu\Kernel\Environment;
 use Derafu\Kernel\MicroKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -19,9 +21,13 @@ use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 #[CoversClass(MicroKernel::class)]
 #[CoversClass(Environment::class)]
+#[CoversClass(PhpRoutesLoader::class)]
+#[CoversClass(YamlRoutesLoader::class)]
 class MicroKernelTest extends TestCase
 {
     private TestEnvironment $environment;
@@ -58,6 +64,10 @@ class MicroKernelTest extends TestCase
 
         $this->assertTrue($container->has('test.service'));
         $this->assertInstanceOf(stdClass::class, $container->get('test.service'));
+
+        $routes = $container->getParameter('routes');
+        $this->assertIsArray($routes);
+        $this->assertArrayHasKey('users_show', $routes);
     }
 
     public function testMultipleBoots(): void
@@ -94,6 +104,20 @@ class TestEnvironment extends Environment
 
 class TestKernel extends MicroKernel
 {
+    protected const CONFIG_FILES = [
+        'services.php' => 'php',
+        'routes.php' => 'routes',
+        'services.yaml' => 'yaml',
+        'routes.yaml' => 'routes',
+    ];
+
+    protected const CONFIG_LOADERS = [
+        PhpFileLoader::class,
+        PhpRoutesLoader::class,
+        YamlFileLoader::class,
+        YamlRoutesLoader::class,
+    ];
+
     public function isBooted(): bool
     {
         return $this->booted;
