@@ -1,1 +1,166 @@
-Soon.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derafu: Project - Slogan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown-light.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/themes/prism.min.css" rel="stylesheet" />
+    <link href="https://derafu.org/foundation/css/styles.min.css" rel="stylesheet" />
+    </head>
+<body class="derafu-theme-earthstone">
+                <div id="header-container" class="sticky-top"></div>
+    
+    <div class="container py-4">
+    <div class="markdown-body"><h1><a id="content-derafu-kernel---lightweight-kernel-implementation-with-container" href="index.html#content-derafu-kernel---lightweight-kernel-implementation-with-container" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Derafu: Kernel - Lightweight Kernel Implementation with Container</h1>
+<p><a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://github.com/derafu/kernel/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/derafu/kernel/actions/workflows/ci.yml/badge.svg?branch=main&amp;event=push" alt="CI Workflow" /></a>
+<a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a></p>
+<p>A lightweight kernel implementation with a dependency injection container, inspired by Symfony but with a minimal approach.</p>
+<h2><a id="content-overview" href="index.html#content-overview" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Overview</h2>
+<p>Derafu Kernel provides a clean, flexible foundation for PHP applications with minimal dependencies. It offers:</p>
+<ul>
+<li>A lightweight kernel implementation with DI container.</li>
+<li>Environment-aware configuration management.</li>
+<li>Support for PHP and YAML configuration files.</li>
+<li>Container caching for improved performance.</li>
+<li>Built-in support for multiple environments (dev, prod, test, etc.).</li>
+</ul>
+<h2><a id="content-installation" href="index.html#content-installation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Installation</h2>
+<pre><code class="language-bash">composer require derafu/kernel
+</code></pre>
+<h2><a id="content-basic-usage" href="index.html#content-basic-usage" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Basic Usage</h2>
+<h3><a id="content-create-a-kernel" href="index.html#content-create-a-kernel" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Create a Kernel</h3>
+<p>The simplest way to use the kernel is to create an instance with a specific environment:</p>
+<pre><code class="language-php">use Derafu\Kernel\MicroKernel;
+
+// Create a kernel with 'dev' environment and debug mode enabled.
+$kernel = new MicroKernel('dev', true);
+
+// Boot the kernel to initialize the container.
+$kernel-&gt;boot();
+</code></pre>
+<h3><a id="content-custom-kernel-implementation" href="index.html#content-custom-kernel-implementation" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Custom Kernel Implementation</h3>
+<p>You can extend the <code>MicroKernel</code> class to customize its behavior:</p>
+<pre><code class="language-php">use Derafu\Kernel\MicroKernel;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+class AppKernel extends MicroKernel
+{
+    // Override the default configuration files.
+    protected const CONFIG_FILES = [
+        'services.php' =&gt; 'php',
+        'routes.php' =&gt; 'routes',
+        'parameters.yaml' =&gt; 'yaml',
+    ];
+
+    // Add additional container configuration.
+    protected function configure(ContainerConfigurator $configurator): void
+    {
+        $services = $configurator-&gt;services();
+
+        // Register application services.
+        $services-&gt;set('app.service', MyService::class)
+            -&gt;public()
+            -&gt;args(['param1', 'param2']);
+    }
+}
+</code></pre>
+<h3><a id="content-environment-configuration" href="index.html#content-environment-configuration" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Environment Configuration</h3>
+<p>The kernel uses an environment object to determine settings and directories:</p>
+<pre><code class="language-php">use Derafu\Kernel\Environment;
+
+// Create an environment with custom settings.
+$environment = new Environment(
+    'prod',                 // Environment name.
+    false,                  // Debug mode.
+    ['custom' =&gt; 'value']   // Context variables.
+);
+
+// Create a kernel with the custom environment.
+$kernel = new MicroKernel($environment);
+</code></pre>
+<h2><a id="content-configuration" href="index.html#content-configuration" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Configuration</h2>
+<h3><a id="content-directory-structure" href="index.html#content-directory-structure" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Directory Structure</h3>
+<p>The kernel expects a <code>config</code> directory for configurations. Any other structure is free.</p>
+<h3><a id="content-service-configuration" href="index.html#content-service-configuration" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Service Configuration</h3>
+<p>Define services in <code>config/services.php</code>:</p>
+<pre><code class="language-php">use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+return static function (ContainerConfigurator $configurator) {
+    $services = $configurator-&gt;services();
+
+    // Auto-configure and autowire services by default.
+    $services-&gt;defaults()
+        -&gt;autowire()
+        -&gt;autoconfigure();
+
+    // Register a single service.
+    $services-&gt;set('app.service', AppService::class)
+        -&gt;public();
+
+    // Register multiple services from namespace.
+    $services-&gt;load('App\\Service\\', '../src/Service/*')
+        -&gt;public();
+};
+</code></pre>
+<h3><a id="content-route-configuration" href="index.html#content-route-configuration" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Route Configuration</h3>
+<p>Define routes in <code>config/routes.php</code> or <code>config/routes.yaml</code>:</p>
+<pre><code class="language-php">// routes.php
+return [
+    'home' =&gt; [
+        'path' =&gt; '/',
+        'controller' =&gt; 'App\\Controller\\HomeController::index',
+    ],
+    'blog_show' =&gt; [
+        'path' =&gt; '/blog/{slug}',
+        'controller' =&gt; 'App\\Controller\\BlogController::show',
+        'parameters' =&gt; [
+            'requirements' =&gt; [
+                'slug' =&gt; '[a-z0-9-]+',
+            ],
+        ],
+    ],
+];
+</code></pre>
+<p>Or in YAML:</p>
+<pre><code class="language-yaml"># routes.yaml
+home:
+    path: /
+    controller: App\Controller\HomeController::index
+
+blog_show:
+    path: /blog/{slug}
+    controller: App\Controller\BlogController::show
+    parameters:
+        requirements:
+            slug: '[a-z0-9-]+'
+</code></pre>
+<h2><a id="content-environment-types" href="index.html#content-environment-types" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Environment Types</h2>
+<p>The kernel supports multiple environment types through constants in <code>EnvironmentInterface</code>:</p>
+<ul>
+<li><code>LOCAL</code>: Local development environment.</li>
+<li><code>DEVELOPMENT</code>: Development environment.</li>
+<li><code>TEST</code>: Testing environment.</li>
+<li><code>STAGING</code>: Staging environment.</li>
+<li><code>QUALITY_ASSURANCE</code>: QA environment.</li>
+<li><code>PREPRODUCTION</code>: Pre-production environment.</li>
+<li><code>PRODUCTION</code>: Production environment.</li>
+</ul>
+<h2><a id="content-contributing" href="index.html#content-contributing" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>Contributing</h2>
+<p>Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.</p>
+<h2><a id="content-license" href="index.html#content-license" class="text-decoration-none small text-muted" aria-hidden="true" title="Permalink"><i class="fa-solid fa-link"></i> </a>License</h2>
+<p>This package is open-sourced software licensed under the <a rel="nofollow noopener noreferrer" target="_blank" class="external-link" href="https://opensource.org/licenses/MIT">MIT license</a>.</p>
+<hr />
+<p>Happy coding! ✨</p>
+</div>
+</div>
+
+            <div id="footer-container"></div>
+<script src="https://derafu.org/foundation/js/derafu.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.28.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    </body>
+</html>
