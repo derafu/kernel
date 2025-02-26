@@ -4,4 +4,4 @@ parameters:
     # Source code directories to be reviewed.
     paths:
         - src
-        #- tests
+        - tests
