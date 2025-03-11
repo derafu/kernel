@@ -5,16 +5,43 @@
 
 {% block body %}
     {% block header %}
-        {% include 'components/header.html.twig' %}
+        <div id="header-container" class="sticky-top"></div>
     {% endblock %}
 
     {% block main %}
-        <main>
-            {% block content %}{% endblock %}
-        </main>
+        <div class="container">
+            <div class="row">
+                <main class="col-md-9">
+                    {% block content %}{% endblock %}
+                </main>
+                <div class="col-md-3 py-4">
+                    <div class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Package Info</div>
+                                <span class="smal text-muted">
+                                    <a href="https://github.com/derafu/kernel" target="_blank" class="link-secondary text-decoration-none">
+                                        <i class="fa-brands fa-github"></i>
+                                        derafu/kernel
+                                    </a>
+                                </span>
+                                <div class="my-2">
+                                    <img src="https://img.shields.io/github/stars/derafu/kernel" alt="GitHub Repo stars">
+                                    <img src="https://img.shields.io/github/forks/derafu/kernel" alt="GitHub forks">
+                                </div>
+                            </div>
+                        </li>
+                        <a href="/" class="list-group-item list-group-item-action {% if request.uri.path == '/' %}active{% endif %}">
+                            README
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% endblock %}
 
     {% block footer %}
-        {% include 'components/footer.html.twig' %}
+        <div id="footer-container"></div>
+        <script src="https://derafu.org/js/derafu.js"></script>
     {% endblock %}
 {% endblock %}

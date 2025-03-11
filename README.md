@@ -1,7 +1,11 @@
-# Derafu: Kernel - Lightweight Kernel Implementation with Container
+# Derafu: Kernel - Lightweight Kernel Implementation with DI Container
 
-[![CI Workflow](https://github.com/derafu/kernel/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/derafu/kernel/actions/workflows/ci.yml?query=branch%3Amain)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+![GitHub last commit](https://img.shields.io/github/last-commit/derafu/kernel/main)
+![CI Workflow](https://github.com/derafu/kernel/actions/workflows/ci.yml/badge.svg?branch=main&event=push)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/derafu/kernel)
+![GitHub Issues](https://img.shields.io/github/issues-raw/derafu/kernel)
+![Total Downloads](https://poser.pugx.org/derafu/kernel/downloads)
+![Monthly Downloads](https://poser.pugx.org/derafu/kernel/d/monthly)
 
 A lightweight kernel implementation with a dependency injection container, inspired by Symfony but with a minimal approach.
 
