@@ -37,7 +37,7 @@ class YamlRoutesLoader extends FileLoader
      * @param string|null $type The resource type.
      * @return array The route configuration.
      */
-    public function load($resource, string $type = null): mixed
+    public function load($resource, ?string $type = null): mixed
     {
         $routes = Yaml::parseFile($resource);
 
@@ -61,7 +61,7 @@ class YamlRoutesLoader extends FileLoader
      * @param string|null $type The resource type.
      * @return bool True if this loader can load the resource.
      */
-    public function supports($resource, string $type = null): bool
+    public function supports($resource, ?string $type = null): bool
     {
         return is_string($resource)
             && 'yaml' === pathinfo($resource, PATHINFO_EXTENSION)
