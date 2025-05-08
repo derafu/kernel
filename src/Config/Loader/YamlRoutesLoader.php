@@ -39,8 +39,10 @@ class YamlRoutesLoader extends FileLoader
      */
     public function load($resource, ?string $type = null): mixed
     {
+        // Load main routes.
         $routes = Yaml::parseFile($resource);
 
+        // Check if the routes are an array.
         if (!is_array($routes)) {
             throw new InvalidArgumentException(sprintf(
                 'The YAML file "%s" has an invalid type, got %s.',
@@ -49,8 +51,26 @@ class YamlRoutesLoader extends FileLoader
             ));
         }
 
+        // Load imported routes.
+        if (isset($routes['imports'])) {
+            $importedRoutes = [];
+            foreach ($routes['imports'] as $import) {
+                $importedRoutes = array_merge(
+                    $importedRoutes,
+                    $this->load(
+                        dirname($resource) . '/' . $import['resource'],
+                        $type
+                    )
+                );
+            }
+            unset($routes['imports']);
+            $routes = array_merge($importedRoutes, $routes);
+        }
+
+        // Set routes parameter.
         $this->container->setParameter('routes', $routes);
 
+        // Return routes.
         return $routes;
     }
 
