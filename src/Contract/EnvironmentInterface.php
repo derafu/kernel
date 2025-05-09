@@ -153,6 +153,13 @@ interface EnvironmentInterface
     public function getResourcesDir(): string;
 
     /**
+     * Gets the context of the environment.
+     *
+     * @return array
+     */
+    public function getContext(): array;
+
+    /**
      * Config from the environment.
      *
      * @return array

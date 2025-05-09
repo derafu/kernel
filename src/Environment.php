@@ -137,6 +137,14 @@ class Environment implements EnvironmentInterface
     /**
      * {@inheritDoc}
      */
+    public function getContext(): array
+    {
+        return $this->context;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function toArray(): array
     {
         return [
@@ -147,6 +155,7 @@ class Environment implements EnvironmentInterface
             'resources_dir' => $this->getResourcesDir(),
             'environment' => $this->getName(),
             'debug' => $this->isDebug(),
+            'context' => $this->getContext(),
         ];
     }
 }

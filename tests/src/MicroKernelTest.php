@@ -36,7 +36,10 @@ class MicroKernelTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->environment = new TestEnvironment('test', true);
+        $this->environment = new TestEnvironment('test', true, [
+            'APP_ENV' => 'dev',
+            'APP_DEBUG' => true,
+        ]);
         $this->kernel = new TestKernel($this->environment);
     }
 
@@ -86,6 +89,14 @@ class MicroKernelTest extends TestCase
 
         $this->assertTrue($kernel->wasConfigureCalled());
         $this->assertTrue($container->has('custom.service'));
+    }
+
+    public function testEnvironmentContext(): void
+    {
+        $container = $this->kernel->getContainer();
+        $context = $container->getParameter('kernel.context');
+        $this->assertSame('dev', $context['APP_ENV']);
+        $this->assertTrue($context['APP_DEBUG']);
     }
 }
 
