@@ -1,9 +1,0 @@
-# Base configuration for routes.yaml
-
-homepage:
-  path: /
-  handler: '%kernel.project_dir%/README.md'
-
-errorpage:
-  path: error
-  handler: '%kernel.project_dir%/templates/error.html.twig'
