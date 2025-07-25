@@ -98,6 +98,32 @@ class MicroKernelTest extends TestCase
         $this->assertSame('dev', $context['APP_ENV']);
         $this->assertTrue($context['APP_DEBUG']);
     }
+
+    public function testEnvironmentVariablesInContainer(): void
+    {
+        // Set up test environment variables.
+        $_ENV['DATABASE_HOST'] = 'test_host';
+        $_ENV['API_KEY'] = 'test_key';
+
+        // Create a new kernel instance to ensure fresh environment loading.
+        $newEnvironment = new TestEnvironment('test', true);
+        $newKernel = new TestKernel($newEnvironment);
+        $container = $newKernel->getContainer();
+
+        // Check that environment variables are available as container parameters.
+        $this->assertTrue($container->hasParameter('env.DATABASE_HOST'));
+        $this->assertTrue($container->hasParameter('env.API_KEY'));
+        $this->assertSame('test_host', $container->getParameter('env.DATABASE_HOST'));
+        $this->assertSame('test_key', $container->getParameter('env.API_KEY'));
+    }
+
+    public function testEnvironmentVariablesFromEnvironment(): void
+    {
+        $_ENV['TEST_VAR'] = 'test_value';
+
+        $this->assertSame('test_value', $this->environment->getEnv('TEST_VAR'));
+        $this->assertSame('default_value', $this->environment->getEnv('NON_EXISTENT', 'default_value'));
+    }
 }
 
 class TestEnvironment extends Environment
@@ -109,7 +135,7 @@ class TestEnvironment extends Environment
 
     protected function getConfigurationFileExtensions(): array
     {
-        return ['php']; // Solo PHP para simplificar los tests.
+        return ['php']; // Only PHP for simplicity.
     }
 }
 

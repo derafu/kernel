@@ -14,6 +14,7 @@ namespace Derafu\Kernel;
 
 use Composer\InstalledVersions;
 use Derafu\Kernel\Contract\EnvironmentInterface;
+use Symfony\Component\Dotenv\Dotenv;
 
 /**
  * Implementation of the environment configuration and structure.
@@ -55,6 +56,13 @@ class Environment implements EnvironmentInterface
     protected string $projectDir;
 
     /**
+     * Environment variables loaded from .env files.
+     *
+     * @var array<string, string>
+     */
+    protected array $envVars = [];
+
+    /**
      * Creates a new Environment instance.
      *
      * @param string $name The environment name (e.g., 'dev', 'prod').
@@ -69,6 +77,9 @@ class Environment implements EnvironmentInterface
         $this->name = $name;
         $this->debug = $debug;
         $this->context = $context;
+
+        // Load environment variables.
+        $this->loadEnvironmentVariables();
     }
 
     /**
@@ -145,6 +156,22 @@ class Environment implements EnvironmentInterface
     /**
      * {@inheritDoc}
      */
+    public function getEnv(string $name, mixed $default = null): mixed
+    {
+        return $this->envVars[$name] ?? $_ENV[$name] ?? $_SERVER[$name] ?? $default;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getEnvVars(): array
+    {
+        return $this->envVars;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function toArray(): array
     {
         return [
@@ -156,6 +183,46 @@ class Environment implements EnvironmentInterface
             'environment' => $this->getName(),
             'debug' => $this->isDebug(),
             'context' => $this->getContext(),
+            'env_vars' => $this->getEnvVars(),
         ];
+    }
+
+    /**
+     * Loads environment variables from .env files.
+     *
+     * This method loads variables in the following order:
+     * 1. .env.local (always ignored in test env)
+     * 2. .env.$environment.local (always ignored in test env)
+     * 3. .env.$environment
+     * 4. .env
+     */
+    protected function loadEnvironmentVariables(): void
+    {
+        $projectDir = $this->getProjectDir();
+        $env = $this->getName();
+
+        $dotenv = new Dotenv();
+
+        // Load .env files in order of precedence.
+        $envFiles = [
+            $projectDir . '/.env.local',
+            $projectDir . '/.env.' . $env . '.local',
+            $projectDir . '/.env.' . $env,
+            $projectDir . '/.env',
+        ];
+
+        foreach ($envFiles as $envFile) {
+            if (file_exists($envFile)) {
+                // Skip .env.local files in test environment.
+                if (str_contains($envFile, '.local') && $env === self::TEST) {
+                    continue;
+                }
+
+                $dotenv->loadEnv($envFile);
+            }
+        }
+
+        // Store loaded variables.
+        $this->envVars = $_ENV;
     }
 }

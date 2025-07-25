@@ -210,8 +210,19 @@ class MicroKernel implements KernelInterface
     {
         // Initialize container and set basic parameters.
         $container = new ContainerBuilder();
+
+        // Set kernel parameters.
         foreach ($this->environment->toArray() as $name => $value) {
+            if ($name === 'env_vars') {
+                continue;
+            }
+
             $container->setParameter('kernel.' . $name, $value);
+        }
+
+        // Set environment variables as parameters.
+        foreach ($this->environment->getEnvVars() as $name => $value) {
+            $container->setParameter('env.' . $name, $value);
         }
 
         // Create the delegating loader for configuration files.

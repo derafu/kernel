@@ -160,6 +160,22 @@ interface EnvironmentInterface
     public function getContext(): array;
 
     /**
+     * Gets an environment variable.
+     *
+     * @param string $name The variable name.
+     * @param mixed $default The default value if the variable is not set.
+     * @return mixed
+     */
+    public function getEnv(string $name, mixed $default = null): mixed;
+
+    /**
+     * Gets all environment variables.
+     *
+     * @return array<string, string>
+     */
+    public function getEnvVars(): array;
+
+    /**
      * Config from the environment.
      *
      * @return array
