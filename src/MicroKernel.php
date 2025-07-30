@@ -217,11 +217,30 @@ class MicroKernel implements KernelInterface
                 continue;
             }
 
+            if ($name === 'context') {
+                // Replace % with %% in all values.
+                // This is necessary to avoid issues with the Symfony parser,
+                // avoiding the interpolation of the values with the % sign as
+                // parameters.
+                array_walk_recursive($value, function (&$contextValue) {
+                    if (is_string($contextValue)) {
+                        $contextValue = str_replace('%', '%%', $contextValue);
+                    }
+                });
+            }
+
             $container->setParameter('kernel.' . $name, $value);
         }
 
         // Set environment variables as parameters.
-        foreach ($this->environment->getEnvVars() as $name => $value) {
+        // And do the same replacement for the % sign as context values.
+        $envVars = $this->environment->getEnvVars();
+        array_walk_recursive($envVars, function (&$envValue) {
+            if (is_string($envValue)) {
+                $envValue = str_replace('%', '%%', $envValue);
+            }
+        });
+        foreach ($envVars as $name => $value) {
             $container->setParameter('env.' . $name, $value);
         }
 
