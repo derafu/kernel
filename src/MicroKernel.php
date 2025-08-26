@@ -270,7 +270,7 @@ class MicroKernel implements KernelInterface
         $this->loadConfiguration($delegatingLoader);
 
         // Configure the container with additional settings.
-        $this->configureContainer($configurator);
+        $this->configureContainer($configurator, $container);
 
         // Compile the container for performance.
         $container->compile();
@@ -328,7 +328,8 @@ class MicroKernel implements KernelInterface
      * @param ContainerConfigurator $configurator The container configurator.
      */
     protected function configureContainer(
-        ContainerConfigurator $configurator
+        ContainerConfigurator $configurator,
+        ContainerBuilder $container
     ): void {
         $services = $configurator->services();
 
@@ -341,7 +342,7 @@ class MicroKernel implements KernelInterface
         ;
 
         // Allow additional configuration through the configure method.
-        $this->configure($configurator);
+        $this->configure($configurator, $container);
     }
 
     /**
@@ -351,8 +352,12 @@ class MicroKernel implements KernelInterface
      * configuration previous compilation.
      *
      * @param ContainerConfigurator $configurator The container configurator.
+     * @param ContainerBuilder $container The container builder.
      */
-    protected function configure(ContainerConfigurator $configurator): void
-    {
+    protected function configure(
+        ContainerConfigurator $configurator,
+        ContainerBuilder $container
+    ): void {
+        // Override this method to add custom service configuration.
     }
 }

@@ -181,7 +181,7 @@ class TestKernelWithEnv extends MicroKernel
         $this->loadConfiguration($delegatingLoader);
 
         // Configure the container with additional settings.
-        $this->configureContainer($configurator);
+        $this->configureContainer($configurator, $container);
 
         // Compile the container for performance.
         $container->compile();

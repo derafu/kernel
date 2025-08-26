@@ -19,6 +19,7 @@ use Derafu\Kernel\MicroKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use stdClass;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
@@ -170,8 +171,10 @@ class Test2Kernel extends MicroKernel
 {
     private bool $configureWasCalled = false;
 
-    protected function configure(ContainerConfigurator $configurator): void
-    {
+    protected function configure(
+        ContainerConfigurator $configurator,
+        ContainerBuilder $container
+    ): void {
         $this->configureWasCalled = true;
         $services = $configurator->services();
         $services->set('custom.service', stdClass::class)->public();
