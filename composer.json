@@ -25,18 +25,18 @@
         }
     },
     "require": {
-        "php": "^8.3",
-        "symfony/config": "^7.2",
-        "symfony/dependency-injection": "^7.2",
-        "symfony/dotenv": "^7.2"
+        "php": "^8.5",
+        "symfony/config": "^7.4",
+        "symfony/dependency-injection": "^7.4",
+        "symfony/dotenv": "^7.4"
     },
     "require-dev": {
         "ext-xdebug": "*",
-        "friendsofphp/php-cs-fixer": "^3.63",
+        "friendsofphp/php-cs-fixer": "^3.94",
         "phpstan/phpstan": "^1.12",
-        "phpunit/phpunit": "^11.4",
+        "phpunit/phpunit": "^11.5",
         "derafu/support": "dev-main",
-        "symfony/yaml": "^7.2"
+        "symfony/yaml": "^7.4"
     },
     "scripts": {
         "docs": "php tools/phpdocumentor run --config=phpdoc.xml",

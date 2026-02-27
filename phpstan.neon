@@ -7,3 +7,8 @@ parameters:
         - tests
     excludePaths:
         - tests/fixtures/var/*
+    # PHPUnit's CoversClass is repeatable (Attribute::IS_REPEATABLE); PHPStan does not read it.
+    # Ignore only this message so real non-repeatable attribute errors are still reported.
+    ignoreErrors:
+        - message: '#CoversClass.*is not repeatable#'
+          identifier: attribute.nonRepeatable
