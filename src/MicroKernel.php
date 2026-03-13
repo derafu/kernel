@@ -24,8 +24,10 @@ use Symfony\Component\Config\Loader\LoaderResolver;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
+use Symfony\Component\DependencyInjection\EnvVarProcessor;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * A lightweight kernel implementation that provides basic container and
@@ -271,6 +273,12 @@ class MicroKernel implements KernelInterface
 
         // Configure the container with additional settings.
         $this->configureContainer($configurator, $container);
+
+        // Register the env var processor.
+        $container
+            ->register(EnvVarProcessor::class)
+            ->setArguments([new Reference('service_container')])
+            ->addTag('container.env_var_processor');
 
         // Compile the container for performance.
         $container->compile();

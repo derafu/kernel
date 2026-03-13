@@ -158,7 +158,30 @@ class Environment implements EnvironmentInterface
      */
     public function getEnv(string $name, mixed $default = null): mixed
     {
-        return $this->envVars[$name] ?? $_ENV[$name] ?? $_SERVER[$name] ?? $default;
+        $type = null;
+
+        if (str_contains($name, ':')) {
+            [$type, $name] = explode(':', $name, 2);
+        }
+
+        $value = $this->envVars[$name]
+            ?? $_ENV[$name]
+            ?? $_SERVER[$name]
+            ?? (($env = getenv($name)) !== false ? $env : null)
+            ?? $default
+        ;
+
+        if ($type === null) {
+            return $value;
+        }
+
+        return match ($type) {
+            'bool' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
+            'int' => (int) $value,
+            'float' => (float) $value,
+            'json' => json_decode((string)$value, true),
+            default => $value,
+        };
     }
 
     /**

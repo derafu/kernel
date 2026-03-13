@@ -30,6 +30,10 @@ class EnvironmentTest extends TestCase
         unset($_ENV['DATABASE_HOST']);
         unset($_ENV['DATABASE_USER']);
         unset($_ENV['API_KEY']);
+        unset($_ENV['TYPED_BOOL_VAR']);
+        unset($_ENV['TYPED_INT_VAR']);
+        unset($_ENV['TYPED_FLOAT_VAR']);
+        unset($_ENV['TYPED_JSON_VAR']);
     }
 
     protected function tearDown(): void
@@ -38,6 +42,9 @@ class EnvironmentTest extends TestCase
         if ($this->originalEnv !== '') {
             $_ENV['DATABASE_HOST'] = $this->originalEnv;
         }
+
+        // Clean up getenv fallback test variable.
+        putenv('GETENV_ONLY_VAR');
     }
 
     public function testEnvironmentVariableLoading(): void
@@ -110,6 +117,40 @@ class EnvironmentTest extends TestCase
         $environment = new TestEnvironmentForEnv('test', true);
 
         $this->assertSame('server_value', $environment->getEnv('SERVER_VAR'));
+    }
+
+    public function testGetEnvWithTypeCasting(): void
+    {
+        $_ENV['TYPED_BOOL_VAR'] = 'true';
+        $_ENV['TYPED_INT_VAR'] = '42';
+        $_ENV['TYPED_FLOAT_VAR'] = '3.14';
+        $_ENV['TYPED_JSON_VAR'] = '{"key":"value","count":5}';
+
+        $environment = new TestEnvironmentForEnv('test', true);
+
+        $this->assertTrue($environment->getEnv('bool:TYPED_BOOL_VAR'));
+        $this->assertSame(42, $environment->getEnv('int:TYPED_INT_VAR'));
+        $this->assertSame(3.14, $environment->getEnv('float:TYPED_FLOAT_VAR'));
+        $this->assertSame(['key' => 'value', 'count' => 5], $environment->getEnv('json:TYPED_JSON_VAR'));
+
+        // Also verify that false-y string values cast to false for bool.
+        $_ENV['TYPED_BOOL_VAR'] = 'false';
+        $environment2 = new TestEnvironmentForEnv('test', true);
+        $this->assertFalse($environment2->getEnv('bool:TYPED_BOOL_VAR'));
+    }
+
+    public function testGetEnvFallsBackToGetenv(): void
+    {
+        // Variable is not in $_ENV or $_SERVER.
+        unset($_ENV['GETENV_ONLY_VAR']);
+        unset($_SERVER['GETENV_ONLY_VAR']);
+
+        // Set it only via putenv().
+        putenv('GETENV_ONLY_VAR=from_getenv');
+
+        $environment = new TestEnvironmentForEnv('test', true);
+
+        $this->assertSame('from_getenv', $environment->getEnv('GETENV_ONLY_VAR'));
     }
 }
 

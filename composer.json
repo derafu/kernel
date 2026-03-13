@@ -26,9 +26,9 @@
     },
     "require": {
         "php": "^8.5",
-        "symfony/config": "^7.4",
-        "symfony/dependency-injection": "^7.4",
-        "symfony/dotenv": "^7.4"
+        "symfony/config": "^8.0",
+        "symfony/dependency-injection": "^8.0",
+        "symfony/dotenv": "^8.0"
     },
     "require-dev": {
         "ext-xdebug": "*",
@@ -36,7 +36,7 @@
         "phpstan/phpstan": "^1.12",
         "phpunit/phpunit": "^11.5",
         "derafu/support": "dev-main",
-        "symfony/yaml": "^7.4"
+        "symfony/yaml": "^8.0"
     },
     "scripts": {
         "docs": "php tools/phpdocumentor run --config=phpdoc.xml",

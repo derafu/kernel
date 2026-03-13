@@ -125,6 +125,18 @@ class MicroKernelTest extends TestCase
         $this->assertSame('test_value', $this->environment->getEnv('TEST_VAR'));
         $this->assertSame('default_value', $this->environment->getEnv('NON_EXISTENT', 'default_value'));
     }
+
+    public function testEnvVarProcessorEnablesTypedEnvVarsInContainer(): void
+    {
+        putenv('TEST_KERNEL_BOOL_VAR=true');
+
+        $kernel = new Test2Kernel('test', true);
+        $container = $kernel->getContainer();
+
+        $this->assertTrue($container->getParameter('test.env.bool'));
+
+        putenv('TEST_KERNEL_BOOL_VAR');
+    }
 }
 
 class TestEnvironment extends Environment
@@ -178,6 +190,7 @@ class Test2Kernel extends MicroKernel
         $this->configureWasCalled = true;
         $services = $configurator->services();
         $services->set('custom.service', stdClass::class)->public();
+        $container->setParameter('test.env.bool', '%env(bool:TEST_KERNEL_BOOL_VAR)%');
     }
 
     public function wasConfigureCalled(): bool
