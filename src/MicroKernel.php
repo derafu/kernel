@@ -99,9 +99,14 @@ class MicroKernel implements KernelInterface
      * an instance of EnvironmentInterface or just the name (e.g., 'dev', 'prod').
      * @param bool $debug Whether to enable debug mode. Used when $environment
      * is a string.
+     * @param string|null $kernelId The ID of the kernel. Used to identify the
+     * cached container class name.
      */
-    public function __construct(string|EnvironmentInterface $environment, bool $debug = false)
-    {
+    public function __construct(
+        string|EnvironmentInterface $environment,
+        bool $debug = false,
+        protected ?string $kernelId = null
+    ) {
         $this->environment = $environment instanceof EnvironmentInterface
             ? $environment
             : new Environment($environment, $debug)
@@ -117,18 +122,52 @@ class MicroKernel implements KernelInterface
             return;
         }
 
-        $containerDumpFile = $this->environment->getCacheDir() . '/container.php';
-        if ($this->environment->isDebug() || !file_exists($containerDumpFile)) {
+        $cachedContainerFile = $this->getCachedContainerFile();
+
+        if ($this->environment->isDebug() || !file_exists($cachedContainerFile)) {
             $container = $this->buildContainer();
-            $this->cacheContainer($containerDumpFile, $container);
+            $this->cacheContainer($container);
         }
 
-        require_once $containerDumpFile;
+        require_once $cachedContainerFile;
 
-        // @phpstan-ignore-next-line
-        $this->container = new \CachedContainer();
+        $this->container = new ('\\' . $this->getCachedContainerClass())();
 
         $this->booted = true;
+    }
+
+    /**
+     * Gets the ID of the kernel.
+     *
+     * @return string
+     */
+    protected function getId(): string
+    {
+        if (!isset($this->kernelId)) {
+            $this->kernelId = md5(static::class);
+        }
+
+        return $this->kernelId;
+    }
+
+    /**
+     * Gets the class name of the cached container.
+     *
+     * @return string
+     */
+    protected function getCachedContainerClass(): string
+    {
+        return 'CachedContainer_' . $this->getId();
+    }
+
+    /**
+     * Gets the path to the cached container file.
+     *
+     * @return string
+     */
+    protected function getCachedContainerFile(): string
+    {
+        return $this->environment->getCacheDir() . '/container_' . $this->getId() . '.php';
     }
 
     /**
@@ -160,28 +199,28 @@ class MicroKernel implements KernelInterface
      *   2. Writes the dumped configuration to a file, either using the File
      *      utility if available, or falling back to native PHP file operations.
      *
-     * @param string $file The path where the cached container should be written.
      * @param ContainerInterface $container The container instance to be cached.
      *
      * @throws RuntimeException If the cache directory cannot be created.
      * @throws RuntimeException If the container cannot be written to the cache file.
      */
-    protected function cacheContainer(
-        string $file,
-        ContainerInterface $container
-    ): void {
+    protected function cacheContainer(ContainerInterface $container): void
+    {
+        $cachedContainerClass = $this->getCachedContainerClass();
+        $cachedContainerFile = $this->getCachedContainerFile();
+
         assert($container instanceof ContainerBuilder);
 
         $dumper = new PhpDumper($container);
 
         $content = $dumper->dump([
-            'class' => 'CachedContainer',
+            'class' => $cachedContainerClass,
         ]);
 
         if (class_exists(File::class)) {
-            File::write($file, $content);
+            File::write($cachedContainerFile, $content);
         } else {
-            $directory = dirname($file);
+            $directory = dirname($cachedContainerFile);
             if (!is_dir($directory)) {
                 if (false === @mkdir($directory, 0777, true) && !is_dir($directory)) {
                     throw new RuntimeException(sprintf(
@@ -191,7 +230,7 @@ class MicroKernel implements KernelInterface
                 }
             }
 
-            file_put_contents($file, $content);
+            file_put_contents($cachedContainerFile, $content);
         }
     }
 

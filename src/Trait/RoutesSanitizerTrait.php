@@ -28,7 +28,11 @@ trait RoutesSanitizerTrait
     protected function sanitizeRoutes(array $routes): array
     {
         foreach ($routes as &$route) {
-            if (!empty($route['handler']) && is_string($route['handler']) && str_starts_with($route['handler'], 'redirect:')) {
+            if (
+                !empty($route['handler'])
+                && is_string($route['handler'])
+                && str_starts_with($route['handler'], 'redirect:')
+            ) {
                 $route['handler'] = str_replace('%', '%%', $route['handler']);
             }
         }
