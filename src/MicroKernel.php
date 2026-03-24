@@ -356,7 +356,10 @@ class MicroKernel implements KernelInterface
     protected function loadConfiguration(DelegatingLoader $loader): void
     {
         foreach (static::CONFIG_FILES as $file => $type) {
-            $configFile = $this->environment->getConfigDir() . '/' . $file;
+            $configFile = realpath($file);
+            if ($configFile === false) {
+                $configFile = $this->environment->getConfigDir() . '/' . $file;
+            }
             if (file_exists($configFile)) {
                 $loader->load($configFile, $type);
             }
