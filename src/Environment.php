@@ -28,34 +28,6 @@ use Symfony\Component\Dotenv\Dotenv;
 class Environment implements EnvironmentInterface
 {
     /**
-     * The current environment (e.g., 'dev', 'prod').
-     *
-     * @var string
-     */
-    protected string $name;
-
-    /**
-     * Whether debug mode is enabled.
-     *
-     * @var bool
-     */
-    protected bool $debug;
-
-    /**
-     * Context of the environment.
-     *
-     * @var array
-     */
-    protected array $context;
-
-    /**
-     * The project's root directory path.
-     *
-     * @var string
-     */
-    protected string $projectDir;
-
-    /**
      * Environment variables loaded from .env files.
      *
      * @var array<string, string>
@@ -68,16 +40,26 @@ class Environment implements EnvironmentInterface
      * @param string $name The environment name (e.g., 'dev', 'prod').
      * @param bool $debug Whether to enable debug mode.
      * @param array<string, mixed> $context
+     * @param array{project?: string|null, cache?: string|null, config?: string|null, log?: string|null, resources?: string|null} $directories
+     * The directories of the environment with keys:
+     *   - project: The project's root directory.
+     *   - cache: The cache directory.
+     *   - config: The configuration directory.
+     *   - log: The logs directory.
+     *   - resources: The resources directory.
      */
     public function __construct(
-        string $name,
-        bool $debug = false,
-        array $context = []
+        protected readonly string $name,
+        protected readonly bool $debug = false,
+        protected readonly array $context = [],
+        protected array $directories = [
+            'project' => null,
+            'cache' => null,
+            'config' => null,
+            'log' => null,
+            'resources' => null,
+        ]
     ) {
-        $this->name = $name;
-        $this->debug = $debug;
-        $this->context = $context;
-
         // Load environment variables.
         $this->loadEnvironmentVariables();
     }
@@ -101,56 +83,17 @@ class Environment implements EnvironmentInterface
     /**
      * {@inheritDoc}
      */
-    public function getProjectDir(): string
-    {
-        if (!isset($this->projectDir)) {
-            $routingPackagePath = realpath(
-                InstalledVersions::getInstallPath('symfony/dependency-injection')
-            );
-            $this->projectDir = dirname($routingPackagePath, 3);
-        }
-
-        return $this->projectDir;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getCacheDir(): string
-    {
-        return $this->getProjectDir() . '/var/cache/' . $this->name;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getConfigDir(): string
-    {
-        return $this->getProjectDir() . '/config';
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getLogDir(): string
-    {
-        return $this->getProjectDir() . '/var/log';
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getResourcesDir(): string
-    {
-        return $this->getProjectDir() . '/resources';
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getContext(): array
     {
         return $this->context;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getEnvVars(): array
+    {
+        return $this->envVars;
     }
 
     /**
@@ -187,9 +130,68 @@ class Environment implements EnvironmentInterface
     /**
      * {@inheritDoc}
      */
-    public function getEnvVars(): array
+    public function getProjectDir(): string
     {
-        return $this->envVars;
+        if (!isset($this->directories['project'])) {
+            $routingPackagePath = realpath(
+                InstalledVersions::getInstallPath('symfony/dependency-injection')
+            );
+            $this->directories['project'] = dirname($routingPackagePath, 3);
+        }
+
+        return $this->directories['project'];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getCacheDir(): string
+    {
+        if (!isset($this->directories['cache'])) {
+            $this->directories['cache'] =
+                $this->getProjectDir() . '/var/cache/' . $this->getName()
+            ;
+        }
+
+        return $this->directories['cache'];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getConfigDir(): string
+    {
+        if (!isset($this->directories['config'])) {
+            $this->directories['config'] = $this->getProjectDir() . '/config';
+        }
+
+        return $this->directories['config'];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getLogDir(): string
+    {
+        if (!isset($this->directories['log'])) {
+            $this->directories['log'] = $this->getProjectDir() . '/var/log';
+        }
+
+        return $this->directories['log'];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getResourcesDir(): string
+    {
+        if (!isset($this->directories['resources'])) {
+            $this->directories['resources'] =
+                $this->getProjectDir() . '/resources'
+            ;
+        }
+
+        return $this->directories['resources'];
     }
 
     /**
