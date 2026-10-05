@@ -2,8 +2,9 @@
 <phpunit
     backupGlobals="true"
     cacheDirectory="var/cache/phpunit"
-    processIsolation="true"
-    executionOrder="depends,defects"
+    processIsolation="false"
+    executionOrder="defects"
+    resolveDependencies="true"
     colors="true"
     testdox="true"
     requireCoverageMetadata="true"
@@ -34,7 +35,7 @@
     </testsuites>
     <coverage
         ignoreDeprecatedCodeUnits="true"
-        pathCoverage="true"
+        pathCoverage="false"
     >
         <report>
             <text

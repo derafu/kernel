@@ -16,8 +16,8 @@ use Derafu\Kernel\Config\Loader\PhpRoutesLoader;
 use Derafu\Kernel\Contract\EnvironmentInterface;
 use Derafu\Kernel\Contract\KernelInterface;
 use Derafu\Support\File;
+use Derafu\Translation\Exception\Core\TranslatableRuntimeException as RuntimeException;
 use ReflectionObject;
-use RuntimeException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Config\Loader\DelegatingLoader;
 use Symfony\Component\Config\Loader\LoaderResolver;
@@ -223,10 +223,10 @@ class MicroKernel implements KernelInterface
             $directory = dirname($cachedContainerFile);
             if (!is_dir($directory)) {
                 if (false === @mkdir($directory, 0777, true) && !is_dir($directory)) {
-                    throw new RuntimeException(sprintf(
-                        'Unable to create directory (%s).',
-                        $directory
-                    ));
+                    throw new RuntimeException([
+                        'Unable to create directory ({directory}).',
+                        'directory' => $directory,
+                    ]);
                 }
             }
 

@@ -35,13 +35,24 @@ class MicroKernelTest extends TestCase
 
     private TestKernel $kernel;
 
+    private array $globalsBackup = [];
+
     protected function setUp(): void
     {
+        $this->globalsBackup = ['env' => $_ENV, 'server' => $_SERVER];
+
         $this->environment = new TestEnvironment('test', true, [
             'APP_ENV' => 'dev',
             'APP_DEBUG' => true,
         ]);
-        $this->kernel = new TestKernel($this->environment);
+        $this->kernel = new TestKernel($this->environment, false, uniqid('kernel_'));
+    }
+
+    protected function tearDown(): void
+    {
+        $_ENV = $this->globalsBackup['env'];
+        $_SERVER = $this->globalsBackup['server'];
+        putenv('TEST_KERNEL_BOOL_VAR');
     }
 
     public function testKernelInitialization(): void
@@ -84,7 +95,7 @@ class MicroKernelTest extends TestCase
 
     public function testConfigureHook(): void
     {
-        $kernel = new Test2Kernel('test', true);
+        $kernel = new Test2Kernel('test', true, uniqid('kernel_'));
 
         $container = $kernel->getContainer();
 
@@ -108,7 +119,7 @@ class MicroKernelTest extends TestCase
 
         // Create a new kernel instance to ensure fresh environment loading.
         $newEnvironment = new TestEnvironment('test', true);
-        $newKernel = new TestKernel($newEnvironment);
+        $newKernel = new TestKernel($newEnvironment, false, uniqid('kernel_'));
         $container = $newKernel->getContainer();
 
         // Check that environment variables are available as container parameters.
@@ -130,12 +141,10 @@ class MicroKernelTest extends TestCase
     {
         putenv('TEST_KERNEL_BOOL_VAR=true');
 
-        $kernel = new Test2Kernel('test', true);
+        $kernel = new Test2Kernel('test', true, uniqid('kernel_'));
         $container = $kernel->getContainer();
 
         $this->assertTrue($container->getParameter('test.env.bool'));
-
-        putenv('TEST_KERNEL_BOOL_VAR');
     }
 }
 

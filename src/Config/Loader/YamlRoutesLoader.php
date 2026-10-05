@@ -13,7 +13,7 @@ declare(strict_types=1);
 namespace Derafu\Kernel\Config\Loader;
 
 use Derafu\Kernel\Trait\RoutesSanitizerTrait;
-use InvalidArgumentException;
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Symfony\Component\Config\FileLocatorInterface;
 use Symfony\Component\Config\Loader\FileLoader;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -47,11 +47,11 @@ class YamlRoutesLoader extends FileLoader
 
         // Check if the routes are an array.
         if (!is_array($routes)) {
-            throw new InvalidArgumentException(sprintf(
-                'The YAML file "%s" has an invalid type, got %s.',
-                $resource,
-                get_debug_type($routes)
-            ));
+            throw new InvalidArgumentException([
+                'The YAML file "{file}" has an invalid type, got {type}.',
+                'file' => $resource,
+                'type' => get_debug_type($routes),
+            ]);
         }
 
         // Load imported routes.

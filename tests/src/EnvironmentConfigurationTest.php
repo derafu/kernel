@@ -32,8 +32,12 @@ class EnvironmentConfigurationTest extends TestCase
 
     private TestKernelWithEnv $kernel;
 
+    private array $globalsBackup = [];
+
     protected function setUp(): void
     {
+        $this->globalsBackup = ['env' => $_ENV, 'server' => $_SERVER];
+
         // Set up test environment variables.
         $_ENV['DATABASE_HOST'] = 'test_db_host';
         $_ENV['DATABASE_USER'] = 'test_db_user';
@@ -42,17 +46,13 @@ class EnvironmentConfigurationTest extends TestCase
         $_ENV['API_URL'] = 'https://api.test.com';
 
         $this->environment = new TestEnvironmentWithEnv('test', true);
-        $this->kernel = new TestKernelWithEnv($this->environment);
+        $this->kernel = new TestKernelWithEnv($this->environment, false, uniqid('kernel_'));
     }
 
     protected function tearDown(): void
     {
-        // Clean up environment variables.
-        unset($_ENV['DATABASE_HOST']);
-        unset($_ENV['DATABASE_USER']);
-        unset($_ENV['DATABASE_PASSWORD']);
-        unset($_ENV['API_KEY']);
-        unset($_ENV['API_URL']);
+        $_ENV = $this->globalsBackup['env'];
+        $_SERVER = $this->globalsBackup['server'];
     }
 
     public function testEnvironmentVariablesInServiceConfiguration(): void
@@ -96,15 +96,11 @@ class EnvironmentConfigurationTest extends TestCase
 
         // Create a new kernel instance to ensure fresh environment loading.
         $newEnvironment = new TestEnvironmentWithEnv('test', true);
-        $newKernel = new TestKernelWithEnv($newEnvironment);
+        $newKernel = new TestKernelWithEnv($newEnvironment, false, uniqid('kernel_'));
         $container = $newKernel->getContainer();
 
         // Should use $_ENV value.
         $this->assertSame('env_value', $container->getParameter('env.TEST_VAR'));
-
-        // Clean up.
-        unset($_ENV['TEST_VAR']);
-        unset($_SERVER['TEST_VAR']);
     }
 
     public function testMissingEnvironmentVariableWithDefault(): void

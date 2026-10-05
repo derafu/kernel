@@ -19,12 +19,12 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Environment::class)]
 class EnvironmentTest extends TestCase
 {
-    private string $originalEnv;
+    private array $globalsBackup = [];
 
     protected function setUp(): void
     {
         // Backup original environment.
-        $this->originalEnv = $_ENV['DATABASE_HOST'] ?? '';
+        $this->globalsBackup = ['env' => $_ENV, 'server' => $_SERVER];
 
         // Clean up environment for tests.
         unset($_ENV['DATABASE_HOST']);
@@ -39,9 +39,8 @@ class EnvironmentTest extends TestCase
     protected function tearDown(): void
     {
         // Restore original environment.
-        if ($this->originalEnv !== '') {
-            $_ENV['DATABASE_HOST'] = $this->originalEnv;
-        }
+        $_ENV = $this->globalsBackup['env'];
+        $_SERVER = $this->globalsBackup['server'];
 
         // Clean up getenv fallback test variable.
         putenv('GETENV_ONLY_VAR');
