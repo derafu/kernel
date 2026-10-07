@@ -15,6 +15,4 @@ return [
         'El archivo PHP "{file}" debe retornar un arreglo, pero retornó {type}.',
     'The YAML file "{file}" has an invalid type, got {type}.' =>
         'El archivo YAML "{file}" tiene un tipo inválido, se obtuvo {type}.',
-    'Unable to create directory ({directory}).' =>
-        'No se pudo crear el directorio ({directory}).',
 ];

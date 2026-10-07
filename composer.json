@@ -29,14 +29,14 @@
         "symfony/config": "^8.0",
         "symfony/dependency-injection": "^8.0",
         "symfony/dotenv": "^8.0",
-        "derafu/translation": "dev-main"
+        "derafu/translation": "dev-main",
+        "derafu/support": "dev-main"
     },
     "require-dev": {
         "ext-xdebug": "*",
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.2",
         "phpunit/phpunit": "^13.4",
-        "derafu/support": "dev-main",
         "symfony/yaml": "^8.0",
         "nikic/php-parser": "^5.9"
     },

@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Derafu\Kernel\Config\Loader;
 
+use Derafu\Kernel\Trait\RoutesParameterTrait;
 use Derafu\Kernel\Trait\RoutesSanitizerTrait;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Symfony\Component\Config\FileLocatorInterface;
@@ -26,6 +27,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  */
 class PhpRoutesLoader extends FileLoader
 {
+    use RoutesParameterTrait;
     use RoutesSanitizerTrait;
 
     public function __construct(
@@ -55,7 +57,7 @@ class PhpRoutesLoader extends FileLoader
         }
 
         $routes = $this->sanitizeRoutes($routes);
-        $this->container->setParameter('routes', $routes);
+        $this->addToRoutesParameter($routes);
 
         return $routes;
     }

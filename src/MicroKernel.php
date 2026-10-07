@@ -36,6 +36,21 @@ use Symfony\Component\DependencyInjection\Reference;
  * This kernel serves as the core of the application, managing:
  *
  *   - Dependency injection container initialization and configuration.
+ *
+ * The container is cached in a file in the cache directory, and the next boot
+ * loads it instead of building it again:
+ *
+ *   - In debug mode it is built and dumped on every boot.
+ *   - Without debug the file that exists is used as it is, and it is never
+ *     checked against the configuration: what the container was built with
+ *     (`services` and `routes` files, also the ones of the packages, the
+ *     classes that a resource glob finds, and the environment variables, which
+ *     are dumped as `env.*` parameters) stays until the file is deleted.
+ *
+ * The kernel does not clear the cache: it is the deployment that has to start
+ * with an empty cache directory (for example, by not sharing `var/cache`
+ * between deploys). Two kernels of the same class in the same process do not
+ * share a container: the second one that is built gets its own.
  */
 class MicroKernel implements KernelInterface
 {
@@ -86,6 +101,13 @@ class MicroKernel implements KernelInterface
     protected bool $booted = false;
 
     /**
+     * The cache file that declared each container class in this process.
+     *
+     * @var array<string, string>
+     */
+    private static array $loadedContainers = [];
+
+    /**
      * The dependency injection container instance.
      *
      * @var ContainerInterface
@@ -123,17 +145,81 @@ class MicroKernel implements KernelInterface
         }
 
         $cachedContainerFile = $this->getCachedContainerFile();
+        $cachedContainerClass = $this->getCachedContainerClass();
 
-        if ($this->environment->isDebug() || !file_exists($cachedContainerFile)) {
+        $rebuild = $this->environment->isDebug() || !file_exists($cachedContainerFile);
+        if ($rebuild) {
             $container = $this->buildContainer();
             $this->cacheContainer($container);
         }
 
-        require_once $cachedContainerFile;
+        if (!class_exists('\\' . $cachedContainerClass, false)) {
+            // First kernel of this class in the process: it declares the class.
+            require $cachedContainerFile;
+            self::$loadedContainers[$cachedContainerClass] = $cachedContainerFile;
+        } elseif (
+            $rebuild
+            || (self::$loadedContainers[$cachedContainerClass] ?? null) !== $cachedContainerFile
+        ) {
+            // The class is already declared (another kernel of the same class
+            // in this process) and the container that was just built, or that
+            // is in another cache directory, is not the one it has: a class
+            // can only be declared once, so this one gets a name of its own.
+            $cachedContainerClass = $this->loadContainerWithOwnName(
+                $cachedContainerFile,
+                $cachedContainerClass
+            );
+        }
 
-        $this->container = new ('\\' . $this->getCachedContainerClass())();
+        $this->container = new ('\\' . $cachedContainerClass)();
 
         $this->booted = true;
+    }
+
+    /**
+     * Loads the cached container under class names that are not in use.
+     *
+     * The cache file declares the class of the container, with the name of the
+     * kernel (the same for every kernel of the same class), and the classes
+     * that stand for the lazy services, with names that depend on the service.
+     * A class can only be declared once in a process, so a copy of the file
+     * where every class declared has a name of its own is loaded and removed.
+     * The cache file is not changed: the next process needs the names it has.
+     *
+     * @param string $file The cache file.
+     * @param string $class The name of the class of the container.
+     * @return string The name that the class of the container got.
+     */
+    private function loadContainerWithOwnName(string $file, string $class): string
+    {
+        $content = (string) file_get_contents($file);
+
+        preg_match_all(
+            '/^(?:(?:abstract|final|readonly)\s+)*(?:class|interface|trait|enum)\s+(\w+)/m',
+            $content,
+            $declared
+        );
+
+        $suffix = '_' . bin2hex(random_bytes(6));
+        foreach (array_unique($declared[1]) as $name) {
+            $content = (string) preg_replace(
+                '/\b' . preg_quote($name, '/') . '\b/',
+                $name . $suffix,
+                $content
+            );
+        }
+
+        // Next to the cache file, where the kernel has just written.
+        $copy = $file . $suffix . '.tmp';
+
+        try {
+            file_put_contents($copy, $content);
+            require $copy;
+        } finally {
+            @unlink($copy);
+        }
+
+        return $class . $suffix;
     }
 
     /**
@@ -196,8 +282,9 @@ class MicroKernel implements KernelInterface
      * The method performs two main tasks:
      *
      *   1. Dumps the container configuration using PhpDumper.
-     *   2. Writes the dumped configuration to a file, either using the File
-     *      utility if available, or falling back to native PHP file operations.
+     *   2. Writes the dumped configuration to a file, with `File::write()`:
+     *      into a temporary file that is then renamed, so a request that boots
+     *      while another one writes never reads a file that is half written.
      *
      * @param ContainerInterface $container The container instance to be cached.
      *
@@ -217,21 +304,7 @@ class MicroKernel implements KernelInterface
             'class' => $cachedContainerClass,
         ]);
 
-        if (class_exists(File::class)) {
-            File::write($cachedContainerFile, $content);
-        } else {
-            $directory = dirname($cachedContainerFile);
-            if (!is_dir($directory)) {
-                if (false === @mkdir($directory, 0777, true) && !is_dir($directory)) {
-                    throw new RuntimeException([
-                        'Unable to create directory ({directory}).',
-                        'directory' => $directory,
-                    ]);
-                }
-            }
-
-            file_put_contents($cachedContainerFile, $content);
-        }
+        File::write($cachedContainerFile, $content);
     }
 
     /**
@@ -355,11 +428,12 @@ class MicroKernel implements KernelInterface
      */
     protected function loadConfiguration(DelegatingLoader $loader): void
     {
+        // The files of the configuration directory, and only those: a file
+        // with the same name in the directory where the process runs (a
+        // relative path would be resolved against it) is not part of the
+        // configuration.
         foreach (static::CONFIG_FILES as $file => $type) {
-            $configFile = realpath($file);
-            if ($configFile === false) {
-                $configFile = $this->environment->getConfigDir() . '/' . $file;
-            }
+            $configFile = $this->environment->getConfigDir() . '/' . $file;
             if (file_exists($configFile)) {
                 $loader->load($configFile, $type);
             }

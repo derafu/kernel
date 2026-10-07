@@ -133,10 +133,13 @@ class Environment implements EnvironmentInterface
     public function getProjectDir(): string
     {
         if (!isset($this->directories['project'])) {
-            $routingPackagePath = realpath(
-                InstalledVersions::getInstallPath('symfony/dependency-injection')
-            );
-            $this->directories['project'] = dirname($routingPackagePath, 3);
+            // The `PROJECT_DIR` of the context, if the application gives it
+            // (the context is what it receives from the runtime); if not, the
+            // root package of Composer, which is the project that is running.
+            $this->directories['project'] = isset($this->context['PROJECT_DIR'])
+                ? (string) $this->context['PROJECT_DIR']
+                : (string) realpath(InstalledVersions::getRootPackage()['install_path'])
+            ;
         }
 
         return $this->directories['project'];
@@ -215,11 +218,18 @@ class Environment implements EnvironmentInterface
     /**
      * Loads environment variables from .env files.
      *
-     * This method loads variables in the following order:
-     * 1. .env.local (always ignored in test env)
-     * 2. .env.$environment.local (always ignored in test env)
-     * 3. .env.$environment
-     * 4. .env
+     * The files are loaded in this order, by the name of the environment of
+     * the kernel, each one replacing the variables that the ones before it
+     * defined:
+     *
+     *   1. `.env`.
+     *   2. `.env.<environment>`.
+     *   3. `.env.<environment>.local` (not in `test`).
+     *   4. `.env.local` (not in `test`).
+     *
+     * So the last one that has a variable wins. A variable of the real
+     * environment (the process, the web server) is never replaced by a file.
+     * `APP_ENV` is not defined if nobody defines it.
      */
     protected function loadEnvironmentVariables(): void
     {
@@ -228,22 +238,28 @@ class Environment implements EnvironmentInterface
 
         $dotenv = new Dotenv();
 
-        // Load .env files in order of precedence.
+        // Only the files that are listed are loaded: `Dotenv::loadEnv()` would
+        // also load the ones of the `APP_ENV` that it finds (`dev` by default),
+        // not the ones of the environment of the kernel, and `.local` files in
+        // `test`. `Dotenv::load()` does not replace the variables of the real
+        // environment, but it does replace the ones that it loaded before.
         $envFiles = [
-            $projectDir . '/.env.local',
-            $projectDir . '/.env.' . $env . '.local',
-            $projectDir . '/.env.' . $env,
-            $projectDir . '/.env',
+            '.env',
+            '.env.' . $env,
+            '.env.' . $env . '.local',
+            '.env.local',
         ];
 
         foreach ($envFiles as $envFile) {
-            if (file_exists($envFile)) {
-                // Skip .env.local files in test environment.
-                if (str_contains($envFile, '.local') && $env === self::TEST) {
-                    continue;
-                }
+            // The `.local` files are not loaded in `test`, so the machine of
+            // who runs the tests does not change them.
+            if ($env === self::TEST && str_ends_with($envFile, '.local')) {
+                continue;
+            }
 
-                $dotenv->loadEnv($envFile);
+            $path = $projectDir . '/' . $envFile;
+            if (file_exists($path)) {
+                $dotenv->load($path);
             }
         }
 
