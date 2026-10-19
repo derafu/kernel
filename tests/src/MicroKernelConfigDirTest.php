@@ -64,6 +64,7 @@ final class MicroKernelConfigDirTest extends TestCase
         $kernel = new ConfigDirKernel(new ConfigDirEnvironment('test', true), false, uniqid('kernel_'));
 
         $routes = $kernel->container()->getParameter('routes');
+        $this->assertIsArray($routes);
 
         $this->assertArrayHasKey('users_show', $routes);
         $this->assertArrayNotHasKey('cwd_probe', $routes);

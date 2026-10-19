@@ -20,6 +20,7 @@ use Derafu\Translation\Exception\Core\TranslatableRuntimeException as RuntimeExc
 use ReflectionObject;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Config\Loader\DelegatingLoader;
+use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Config\Loader\LoaderResolver;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -79,7 +80,7 @@ class MicroKernel implements KernelInterface
     /**
      * Loaders for file configurations.
      *
-     * @var class-string[]
+     * @var class-string<LoaderInterface>[]
      */
     protected const CONFIG_LOADERS = [
         PhpFileLoader::class,
@@ -171,7 +172,9 @@ class MicroKernel implements KernelInterface
             );
         }
 
-        $this->container = new ('\\' . $cachedContainerClass)();
+        /** @var ContainerInterface $container */
+        $container = new ('\\' . $cachedContainerClass)();
+        $this->container = $container;
 
         $this->booted = true;
     }
@@ -300,6 +303,8 @@ class MicroKernel implements KernelInterface
 
         $dumper = new PhpDumper($container);
 
+        // Without as_files, PhpDumper returns the generated PHP source.
+        /** @var string $content */
         $content = $dumper->dump([
             'class' => $cachedContainerClass,
         ]);

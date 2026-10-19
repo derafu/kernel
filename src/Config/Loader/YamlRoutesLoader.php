@@ -40,10 +40,17 @@ class YamlRoutesLoader extends FileLoader
      *
      * @param mixed $resource The resource.
      * @param string|null $type The resource type.
-     * @return array The route configuration.
+     * @return array<array-key, mixed> The route configuration.
      */
     public function load($resource, ?string $type = null): mixed
     {
+        if (!is_string($resource)) {
+            throw new InvalidArgumentException([
+                'The YAML routes resource must be a string; {type} given.',
+                'type' => get_debug_type($resource),
+            ]);
+        }
+
         // Load main routes.
         $routes = Yaml::parseFile($resource);
 
@@ -58,8 +65,34 @@ class YamlRoutesLoader extends FileLoader
 
         // Load imported routes.
         if (isset($routes['imports'])) {
+            if (!is_array($routes['imports'])) {
+                throw new InvalidArgumentException([
+                    'The imports in the YAML file "{file}" must be an array; {type} given.',
+                    'file' => $resource,
+                    'type' => get_debug_type($routes['imports']),
+                ]);
+            }
+
             $importedRoutes = [];
-            foreach ($routes['imports'] as $import) {
+            foreach ($routes['imports'] as $name => $import) {
+                if (!is_array($import)) {
+                    throw new InvalidArgumentException([
+                        'The import "{name}" in the YAML file "{file}" must be an array; {type} given.',
+                        'name' => $name,
+                        'file' => $resource,
+                        'type' => get_debug_type($import),
+                    ]);
+                }
+
+                if (!isset($import['resource']) || !is_string($import['resource'])) {
+                    throw new InvalidArgumentException([
+                        'The import "{name}" in the YAML file "{file}" must define a string resource; {type} given.',
+                        'name' => $name,
+                        'file' => $resource,
+                        'type' => get_debug_type($import['resource'] ?? null),
+                    ]);
+                }
+
                 $importedRoutes = array_merge(
                     $importedRoutes,
                     $this->load(

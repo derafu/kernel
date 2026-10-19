@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace Derafu\Kernel\Trait;
 
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
+
 /**
  * Trait to add the routes of a file to the `routes` parameter of the container.
  *
@@ -35,6 +37,13 @@ trait RoutesParameterTrait
             ? $this->container->getParameter('routes')
             : []
         ;
+
+        if (!is_array($current)) {
+            throw new InvalidArgumentException([
+                'The container parameter "routes" must be an array; {type} given.',
+                'type' => get_debug_type($current),
+            ]);
+        }
 
         $this->container->setParameter('routes', array_merge($current, $routes));
     }

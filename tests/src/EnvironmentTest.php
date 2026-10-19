@@ -19,6 +19,9 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Environment::class)]
 class EnvironmentTest extends TestCase
 {
+    /**
+     * @var array<string, array<string, mixed>>
+     */
     private array $globalsBackup = [];
 
     protected function setUp(): void

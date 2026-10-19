@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace Derafu\Kernel\Trait;
 
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
+
 /**
  * Trait to sanitize routes.
  */
@@ -22,12 +24,20 @@ trait RoutesSanitizerTrait
      *
      *   - Replace % with %% in the handler if it is a redirect route.
      *
-     * @param array $routes The routes to sanitize.
-     * @return array The sanitized routes.
+     * @param array<array-key, mixed> $routes The routes to sanitize.
+     * @return array<array-key, mixed> The sanitized routes.
      */
     protected function sanitizeRoutes(array $routes): array
     {
-        foreach ($routes as &$route) {
+        foreach ($routes as $name => &$route) {
+            if (!is_array($route)) {
+                throw new InvalidArgumentException([
+                    'The route "{name}" must be an array; {type} given.',
+                    'name' => $name,
+                    'type' => get_debug_type($route),
+                ]);
+            }
+
             if (
                 !empty($route['handler'])
                 && is_string($route['handler'])

@@ -35,6 +35,9 @@ class MicroKernelTest extends TestCase
 
     private TestKernel $kernel;
 
+    /**
+     * @var array<string, array<string, mixed>>
+     */
     private array $globalsBackup = [];
 
     protected function setUp(): void
@@ -107,6 +110,7 @@ class MicroKernelTest extends TestCase
     {
         $container = $this->kernel->getContainer();
         $context = $container->getParameter('kernel.context');
+        $this->assertIsArray($context);
         $this->assertSame('dev', $context['APP_ENV']);
         $this->assertTrue($context['APP_DEBUG']);
     }
@@ -155,6 +159,9 @@ class TestEnvironment extends Environment
         return dirname(__DIR__) . '/fixtures/config';
     }
 
+    /**
+     * @return list<string>
+     */
     protected function getConfigurationFileExtensions(): array
     {
         return ['php']; // Only PHP for simplicity.

@@ -14,6 +14,8 @@ namespace Derafu\Kernel;
 
 use Composer\InstalledVersions;
 use Derafu\Kernel\Contract\EnvironmentInterface;
+use Derafu\Translation\Exception\Core\TranslatableRuntimeException as RuntimeException;
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Symfony\Component\Dotenv\Dotenv;
 
 /**
@@ -28,9 +30,12 @@ use Symfony\Component\Dotenv\Dotenv;
 class Environment implements EnvironmentInterface
 {
     /**
-     * Environment variables loaded from .env files.
+     * Environment values captured after loading the .env files.
      *
-     * @var array<string, string>
+     * Arrays recursively contain only scalars, null, or other arrays.
+     * Objects and resources are rejected at every nesting level.
+     *
+     * @var array<array-key, scalar|array<array-key, mixed>|null>
      */
     protected array $envVars = [];
 
@@ -98,6 +103,8 @@ class Environment implements EnvironmentInterface
 
     /**
      * {@inheritDoc}
+     *
+     * @throws InvalidArgumentException If a typed conversion receives a non-scalar value.
      */
     public function getEnv(string $name, mixed $default = null): mixed
     {
@@ -120,15 +127,41 @@ class Environment implements EnvironmentInterface
 
         return match ($type) {
             'bool' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
-            'int' => (int) $value,
-            'float' => (float) $value,
-            'json' => json_decode((string)$value, true),
+            'int' => (int) $this->requireScalarEnvValue($value, $name),
+            'float' => (float) $this->requireScalarEnvValue($value, $name),
+            'json' => json_decode(
+                (string) $this->requireScalarEnvValue($value, $name),
+                true
+            ),
             default => $value,
         };
     }
 
     /**
+     * Requires a scalar or null without changing the value to be converted.
+     *
+     * @throws InvalidArgumentException If the value is not scalar or null.
+     */
+    private function requireScalarEnvValue(
+        mixed $value,
+        string $name
+    ): bool|int|float|string|null {
+        if ($value !== null && !is_scalar($value)) {
+            throw new InvalidArgumentException([
+                'The environment variable {name} must be a scalar or null; {type} given.',
+                'name' => $name,
+                'type' => get_debug_type($value),
+            ]);
+        }
+
+        return $value;
+    }
+
+    /**
      * {@inheritDoc}
+     *
+     * @throws InvalidArgumentException If the PROJECT_DIR context value is not a string.
+     * @throws RuntimeException If the Composer project directory cannot be resolved.
      */
     public function getProjectDir(): string
     {
@@ -136,10 +169,26 @@ class Environment implements EnvironmentInterface
             // The `PROJECT_DIR` of the context, if the application gives it
             // (the context is what it receives from the runtime); if not, the
             // root package of Composer, which is the project that is running.
-            $this->directories['project'] = isset($this->context['PROJECT_DIR'])
-                ? (string) $this->context['PROJECT_DIR']
-                : (string) realpath(InstalledVersions::getRootPackage()['install_path'])
-            ;
+            $projectDir = $this->context['PROJECT_DIR'] ?? null;
+            if ($projectDir !== null && !is_string($projectDir)) {
+                throw new InvalidArgumentException([
+                    'The PROJECT_DIR context value must be a string; {type} given.',
+                    'type' => get_debug_type($projectDir),
+                ]);
+            }
+
+            if ($projectDir === null) {
+                $installPath = InstalledVersions::getRootPackage()['install_path'];
+                $projectDir = realpath($installPath);
+                if ($projectDir === false) {
+                    throw new RuntimeException([
+                        'The Composer project directory "{path}" could not be resolved.',
+                        'path' => $installPath,
+                    ]);
+                }
+            }
+
+            $this->directories['project'] = $projectDir;
         }
 
         return $this->directories['project'];
@@ -263,7 +312,30 @@ class Environment implements EnvironmentInterface
             }
         }
 
-        // Store loaded variables.
-        $this->envVars = $_ENV;
+        // Validate and capture the values without converting their types.
+        $this->envVars = $this->validateEnvironmentValues($_ENV);
+    }
+
+    /**
+     * Validates environment values recursively without converting them.
+     *
+     * @param array<array-key, mixed> $values
+     * @param string $path The path used to identify an invalid value.
+     * @return array<array-key, scalar|array<array-key, mixed>|null>
+     * @throws InvalidArgumentException If an object or resource is found.
+     */
+    private function validateEnvironmentValues(
+        array $values,
+        string $path = '$_ENV'
+    ): array {
+        $validated = [];
+        foreach ($values as $name => $value) {
+            $valuePath = $path . '[' . $name . ']';
+            $validated[$name] = is_array($value)
+                ? $this->validateEnvironmentValues($value, $valuePath)
+                : $this->requireScalarEnvValue($value, $valuePath);
+        }
+
+        return $validated;
     }
 }

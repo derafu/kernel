@@ -16,11 +16,17 @@ use Derafu\Kernel\Config\Loader\PhpRoutesLoader;
 use Derafu\Kernel\Config\Loader\YamlRoutesLoader;
 use Derafu\Support\File;
 use Derafu\Translation\Contract\TranslatableInterface;
+use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use stdClass;
+use Stringable;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\Translation\Loader\PhpFileLoader;
+use Symfony\Component\Translation\Translator;
 use Throwable;
 
 /**
@@ -82,5 +88,77 @@ final class RoutesLoadersTest extends TestCase
             fn () => $loader->load($file),
             sprintf('The YAML file "%s" has an invalid type, got string.', $file)
         );
+    }
+
+    /** @return array<string, array{mixed}> */
+    public static function invalidYamlResources(): array
+    {
+        return [
+            'null' => [null],
+            'false' => [false],
+            'true' => [true],
+            'integer' => [123],
+            'float' => [1.5],
+            'empty array' => [[]],
+            'array with path' => [['resource' => 'routes.yaml']],
+            'object' => [new stdClass()],
+            'stringable object' => [new class () implements Stringable {
+                public function __toString(): string
+                {
+                    return 'routes.yaml';
+                }
+            }],
+        ];
+    }
+
+    #[DataProvider('invalidYamlResources')]
+    public function testAYamlResourceMustBeAString(mixed $resource): void
+    {
+        $loader = new YamlRoutesLoader(new ContainerBuilder(), new FileLocator($this->directory));
+
+        $this->assertTranslatableError(
+            fn () => $loader->load($resource),
+            'The YAML routes resource must be a string; ' . get_debug_type($resource) . ' given.'
+        );
+    }
+
+    public function testAStreamCannotBeAYamlPathAndRemainsOpen(): void
+    {
+        $resource = fopen('php://memory', 'r+');
+        $this->assertIsResource($resource);
+        try {
+            $loader = new YamlRoutesLoader(new ContainerBuilder(), new FileLocator($this->directory));
+            $this->assertTranslatableError(
+                fn () => $loader->load($resource),
+                'The YAML routes resource must be a string; resource (stream) given.'
+            );
+            $this->assertSame(2, fwrite($resource, 'ok'));
+        } finally {
+            fclose($resource);
+        }
+    }
+
+    public function testAnInvalidYamlResourceErrorIsTranslatedIntoSpanish(): void
+    {
+        $translator = new Translator('es');
+        $translator->addLoader('php', new PhpFileLoader());
+        $translator->addResource(
+            'php',
+            dirname(__DIR__, 4) . '/resources/translations/errors+intl-icu.es.php',
+            'es',
+            'errors+intl-icu'
+        );
+        $loader = new YamlRoutesLoader(new ContainerBuilder(), new FileLocator($this->directory));
+
+        try {
+            $loader->load(null);
+            $this->fail('A null YAML resource must be rejected.');
+        } catch (TranslatableInvalidArgumentException $exception) {
+            $this->assertSame(['type' => 'null'], $exception->getTranslatableMessage()->getParameters());
+            $this->assertSame(
+                'El recurso de rutas YAML debe ser un string; se recibió null.',
+                $exception->trans($translator)
+            );
+        }
     }
 }

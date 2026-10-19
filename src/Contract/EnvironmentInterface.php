@@ -155,7 +155,7 @@ interface EnvironmentInterface
     /**
      * Gets the context of the environment.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getContext(): array;
 
@@ -169,16 +169,29 @@ interface EnvironmentInterface
     public function getEnv(string $name, mixed $default = null): mixed;
 
     /**
-     * Gets all environment variables.
+     * Gets environment values without converting their types.
      *
-     * @return array<string, string>
+     * Values are scalars, null, or arrays recursively containing those types.
+     * Objects and resources are rejected at every nesting level.
+     *
+     * @return array<array-key, scalar|array<array-key, mixed>|null>
      */
     public function getEnvVars(): array;
 
     /**
      * Config from the environment.
      *
-     * @return array
+     * @return array{
+     *     project_dir: string,
+     *     cache_dir: string,
+     *     config_dir: string,
+     *     log_dir: string,
+     *     resources_dir: string,
+     *     environment: string,
+     *     debug: bool,
+     *     context: array<string, mixed>,
+     *     env_vars: array<array-key, scalar|array<array-key, mixed>|null>
+     * }
      */
     public function toArray(): array;
 }

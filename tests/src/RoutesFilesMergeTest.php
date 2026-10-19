@@ -67,7 +67,22 @@ final class RoutesFilesMergeTest extends TestCase
 
         $kernel = new MergeKernel(new MergeEnvironment('test', true), false, uniqid('kernel_'));
 
-        return $kernel->container()->getParameter('routes');
+        $routes = $kernel->container()->getParameter('routes');
+        $this->assertIsArray($routes);
+
+        $validated = [];
+        foreach ($routes as $name => $route) {
+            $this->assertIsString($name);
+            $this->assertIsArray($route);
+            $attributes = [];
+            foreach ($route as $key => $value) {
+                $this->assertIsString($key);
+                $attributes[$key] = $value;
+            }
+            $validated[$name] = $attributes;
+        }
+
+        return $validated;
     }
 
     #[Test]

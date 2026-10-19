@@ -32,6 +32,9 @@ class EnvironmentConfigurationTest extends TestCase
 
     private TestKernelWithEnv $kernel;
 
+    /**
+     * @var array<string, array<string, mixed>>
+     */
     private array $globalsBackup = [];
 
     protected function setUp(): void

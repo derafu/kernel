@@ -15,6 +15,7 @@ namespace Derafu\TestsKernel;
 use Derafu\Kernel\Config\Loader\PhpRoutesLoader;
 use Derafu\Kernel\Environment;
 use Derafu\Kernel\MicroKernel;
+use Derafu\Support\File;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -138,6 +139,52 @@ final class MicroKernelCacheTest extends TestCase
 
         $this->assertSame('second', $this->kernel(true)->container()->getParameter('probe'));
     }
+
+    #[Test]
+    public function bootingTheSameKernelAgainKeepsItsContainerEvenWithDebug(): void
+    {
+        $kernel = $this->kernel(true);
+        $kernel->boot();
+        $container = $kernel->container();
+        $this->assertSame(1, $kernel->configureCalls);
+        $this->assertSame('first', $container->getParameter('probe'));
+
+        ProbeKernel::$value = 'second';
+        $kernel->boot();
+
+        $this->assertSame($container, $kernel->container());
+        $this->assertSame('first', $kernel->container()->getParameter('probe'));
+        $this->assertSame(1, $kernel->configureCalls);
+    }
+
+    #[Test]
+    public function withoutAnExplicitIdTheClassHashNamesTheReusableCache(): void
+    {
+        $directory = sys_get_temp_dir() . '/' . uniqid('kernel_default_id_', true);
+        mkdir($directory . '/config', 0777, true);
+        try {
+            $environment = new Environment('test', false, [], ['project' => $directory]);
+            $kernel = new ProbeKernel($environment);
+            $container = $kernel->container();
+            $this->assertSame('first', $container->getParameter('probe'));
+
+            $id = md5(ProbeKernel::class);
+            $file = $environment->getCacheDir() . '/container_' . $id . '.php';
+            $this->assertFileExists($file);
+            $content = file_get_contents($file);
+            $this->assertIsString($content);
+            $this->assertStringContainsString('class CachedContainer_' . $id . ' extends', $content);
+
+            ProbeKernel::$value = 'second';
+            $second = new ProbeKernel($environment);
+            $this->assertSame('first', $second->container()->getParameter('probe'));
+            $this->assertNotSame($container, $second->container());
+            $this->assertSame(0, $second->configureCalls);
+            $this->assertSame([$file], glob($environment->getCacheDir() . '/container_*.php'));
+        } finally {
+            File::rmdir($directory);
+        }
+    }
 }
 
 interface ProbeServiceInterface
@@ -154,6 +201,8 @@ final class ProbeKernel extends MicroKernel
 
     public static bool $lazy = false;
 
+    public int $configureCalls = 0;
+
     public function container(): ContainerInterface
     {
         return $this->getContainer();
@@ -163,6 +212,7 @@ final class ProbeKernel extends MicroKernel
         ContainerConfigurator $configurator,
         ContainerBuilder $container
     ): void {
+        $this->configureCalls++;
         $container->setParameter('probe', self::$value);
 
         if (self::$lazy) {

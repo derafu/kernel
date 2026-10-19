@@ -42,7 +42,7 @@ class PhpRoutesLoader extends FileLoader
      *
      * @param mixed $resource The resource.
      * @param string|null $type The resource type.
-     * @return array The route configuration.
+     * @return array<array-key, mixed> The route configuration.
      */
     public function load($resource, ?string $type = null): mixed
     {
