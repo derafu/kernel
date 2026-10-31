@@ -29,8 +29,8 @@
         "symfony/config": "^8.0",
         "symfony/dependency-injection": "^8.0",
         "symfony/dotenv": "^8.0",
-        "derafu/translation": "dev-main",
-        "derafu/support": "dev-main"
+        "derafu/file": "dev-main",
+        "derafu/translation": "dev-main"
     },
     "require-dev": {
         "ext-xdebug": "*",

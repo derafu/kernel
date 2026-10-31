@@ -12,10 +12,10 @@ declare(strict_types=1);
 
 namespace Derafu\Kernel;
 
+use Derafu\File\File;
 use Derafu\Kernel\Config\Loader\PhpRoutesLoader;
 use Derafu\Kernel\Contract\EnvironmentInterface;
 use Derafu\Kernel\Contract\KernelInterface;
-use Derafu\Support\File;
 use Derafu\Translation\Exception\Core\TranslatableRuntimeException as RuntimeException;
 use ReflectionObject;
 use Symfony\Component\Config\FileLocator;

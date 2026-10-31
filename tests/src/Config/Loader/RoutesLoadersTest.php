@@ -12,9 +12,9 @@ declare(strict_types=1);
 
 namespace Derafu\TestsKernel\Config\Loader;
 
+use Derafu\File\Directory;
 use Derafu\Kernel\Config\Loader\PhpRoutesLoader;
 use Derafu\Kernel\Config\Loader\YamlRoutesLoader;
-use Derafu\Support\File;
 use Derafu\Translation\Contract\TranslatableInterface;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException;
 use InvalidArgumentException;
@@ -47,7 +47,7 @@ final class RoutesLoadersTest extends TestCase
 
     protected function tearDown(): void
     {
-        File::rmdir($this->directory);
+        Directory::remove($this->directory);
     }
 
     private function assertTranslatableError(callable $load, string $message): void

@@ -14,8 +14,8 @@ namespace Derafu\TestsKernel;
 
 use Composer\Autoload\ClassLoader;
 use Composer\InstalledVersions;
+use Derafu\File\Directory;
 use Derafu\Kernel\Environment;
-use Derafu\Support\File;
 use Derafu\Translation\Exception\Core\TranslatableRuntimeException as RuntimeException;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -54,7 +54,7 @@ final class EnvironmentProjectDirValidationTest extends TestCase
         $this->loader?->unregister();
         $_ENV = $this->env;
         $_SERVER = $this->server;
-        File::rmdir($this->directory);
+        Directory::remove($this->directory);
     }
 
     /**

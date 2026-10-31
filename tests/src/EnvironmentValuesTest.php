@@ -12,10 +12,10 @@ declare(strict_types=1);
 
 namespace Derafu\TestsKernel;
 
+use Derafu\File\Directory;
 use Derafu\Kernel\Config\Loader\PhpRoutesLoader;
 use Derafu\Kernel\Environment;
 use Derafu\Kernel\MicroKernel;
-use Derafu\Support\File;
 use Derafu\Translation\Exception\Logic\TranslatableInvalidArgumentException as InvalidArgumentException;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -55,7 +55,7 @@ final class EnvironmentValuesTest extends TestCase
     {
         $_ENV = $this->env;
         $_SERVER = $this->server;
-        File::rmdir($this->directory);
+        Directory::remove($this->directory);
     }
 
     private function environment(): Environment

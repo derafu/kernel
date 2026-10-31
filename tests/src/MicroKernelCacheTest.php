@@ -12,10 +12,10 @@ declare(strict_types=1);
 
 namespace Derafu\TestsKernel;
 
+use Derafu\File\Directory;
 use Derafu\Kernel\Config\Loader\PhpRoutesLoader;
 use Derafu\Kernel\Environment;
 use Derafu\Kernel\MicroKernel;
-use Derafu\Support\File;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -182,7 +182,7 @@ final class MicroKernelCacheTest extends TestCase
             $this->assertSame(0, $second->configureCalls);
             $this->assertSame([$file], glob($environment->getCacheDir() . '/container_*.php'));
         } finally {
-            File::rmdir($directory);
+            Directory::remove($directory);
         }
     }
 }
