@@ -29,10 +29,10 @@ use Symfony\Component\Translation\Translator;
 #[CoversClass(Environment::class)]
 final class EnvironmentProjectDirValidationTest extends TestCase
 {
-    /** @var array<string, mixed> */
+    /** @var array<array-key, mixed> */
     private array $env;
 
-    /** @var array<string, mixed> */
+    /** @var array<array-key, mixed> */
     private array $server;
 
     private string $directory;

@@ -33,12 +33,12 @@ final class EnvironmentFilesTest extends TestCase
     private const VARIABLES = ['FILES_WHO', 'FILES_ONLY_ENV', 'FILES_ONLY_DEV', 'FILES_ONLY_LOCAL', 'FILES_REAL', 'APP_ENV'];
 
     /**
-     * @var array<string, mixed>
+     * @var array<array-key, mixed>
      */
     private array $env;
 
     /**
-     * @var array<string, mixed>
+     * @var array<array-key, mixed>
      */
     private array $server;
 

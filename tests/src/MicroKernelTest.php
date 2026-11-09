@@ -36,7 +36,7 @@ class MicroKernelTest extends TestCase
     private TestKernel $kernel;
 
     /**
-     * @var array<string, array<string, mixed>>
+     * @var array<string, array<array-key, mixed>>
      */
     private array $globalsBackup = [];
 

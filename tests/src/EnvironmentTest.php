@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 class EnvironmentTest extends TestCase
 {
     /**
-     * @var array<string, array<string, mixed>>
+     * @var array<string, array<array-key, mixed>>
      */
     private array $globalsBackup = [];
 

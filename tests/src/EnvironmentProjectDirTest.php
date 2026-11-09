@@ -30,12 +30,12 @@ use PHPUnit\Framework\TestCase;
 final class EnvironmentProjectDirTest extends TestCase
 {
     /**
-     * @var array<string, mixed>
+     * @var array<array-key, mixed>
      */
     private array $env;
 
     /**
-     * @var array<string, mixed>
+     * @var array<array-key, mixed>
      */
     private array $server;
 

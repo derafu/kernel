@@ -29,7 +29,7 @@ trait RoutesParameterTrait
      * other's away), in the order the files were loaded. A name that is already
      * there keeps its place in the order and gets the route of the later file.
      *
-     * @param array<string, mixed> $routes The routes of the file.
+     * @param array<array-key, mixed> $routes The routes of the file.
      */
     protected function addToRoutesParameter(array $routes): void
     {

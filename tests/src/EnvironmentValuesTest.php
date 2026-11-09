@@ -33,10 +33,10 @@ use Symfony\Component\Translation\Translator;
 #[UsesClass(PhpRoutesLoader::class)]
 final class EnvironmentValuesTest extends TestCase
 {
-    /** @var array<string, mixed> */
+    /** @var array<array-key, mixed> */
     private array $env;
 
-    /** @var array<string, mixed> */
+    /** @var array<array-key, mixed> */
     private array $server;
 
     private string $directory;

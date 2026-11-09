@@ -28,10 +28,10 @@ final class EnvironmentScalarConversionTest extends TestCase
 {
     private const VARIABLE = 'DERAFU_KERNEL_SCALAR_TEST_VALUE';
 
-    /** @var array<string, mixed> */
+    /** @var array<array-key, mixed> */
     private array $env;
 
-    /** @var array<string, mixed> */
+    /** @var array<array-key, mixed> */
     private array $server;
 
     private string|false $processValue;
